@@ -13,21 +13,16 @@ fun main() {
 }
 
 fun example(path: Path, `package`: Package) {
-    // create Jar file instance
     val jar = Jar(path, `package`)
-    // create ClassManager and initialize it with the jar
     val cm = ClassManager(KfgConfig(Flags.readAll, failOnError = true))
     cm.initialize(jar)
-    // iterate over all found classes
     for (klass in cm.concreteClasses) {
         //println(klass.name)
         for (method in klass.allMethods) {
-            // view each method as graph
             //method.view("/usr/bin/dot", "/usr/bin/firefox")
             println(MethodAnalyzer.getThrownExceptions(method))
-            //method.basicBlocks.forEach { println(it); println("\n---------------------------\n") }
+            //method.catchEntries.forEach { println(it.successors); println("\n---------------------------\n") }
         }
     }
-    // save all changes to methods back to jar
     jar.update(cm)
 }
