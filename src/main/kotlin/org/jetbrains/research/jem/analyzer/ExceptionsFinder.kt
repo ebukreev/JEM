@@ -24,7 +24,7 @@ fun example(path: Path, `package`: Package) {
         for (method in klass.allMethods) {
             // view each method as graph
             //method.view("/usr/bin/dot", "/usr/bin/firefox")
-            println(getThrownExceptions(method))
+            println(MethodAnalyzer.getThrownExceptions(method))
             //method.basicBlocks.forEach { println(it); println("\n---------------------------\n") }
         }
     }
