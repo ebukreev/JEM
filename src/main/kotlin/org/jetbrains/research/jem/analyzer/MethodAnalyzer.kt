@@ -12,98 +12,84 @@ class MethodAnalyzer(methodForAnalysis: CtMethod) {
     private val tree = cfg.dominatorTree()
     private val catchBlocks = getAllCatchBlocks()
     private val classPool = method.declaringClass.classPool
-
+    private val reachableCatchBlocks = mutableSetOf<ControlFlow.Block>()
+    private val iterator = method.methodInfo2.codeAttribute.iterator()
+    private var hasEmptyFinally = false
 
     fun getPossibleExceptions(): Set<String> {
-        val result = mutableSetOf<String>()
-        for (node in tree) {
-            if (node.children() == 0 && isReachable(node)) {
-                result.addAll(getThrownExceptions(node.block()))
-            }
-        }
-        return result.minus("java.lang.Throwable")
-    }
-    /*{
         val exceptions = mutableSetOf<String>()
         for (node in tree) {
-            if (node.block() !in catchBlocks) {
-                val thrownExceptions = getThrownExceptions(node.block())
-                exceptions.addAll(thrownExceptions)
+            if (node.children() == 0 && isReachable(node)) {
+                exceptions.addAll(getThrownExceptions(node.block()))
             }
         }
-        for (block in catchBlocks) {
-            if (block.clientData == "catch") {
-                val thrownExceptions = getThrownExceptions(block)
-                exceptions.addAll(thrownExceptions)
-            }
-        }
-        return exceptions
-    }*/
-
-    private fun isReachable(node: ControlFlow.Node): Boolean {
-        if (node.block() in catchBlocks) {
-            return node.block().clientData == "catch"
-        }
-        return true
+        return if (hasEmptyFinally)
+            exceptions.minus("java.lang.Throwable")
+        else
+            exceptions
     }
 
+    private fun isReachable(node: ControlFlow.Node): Boolean =
+        if (node.block() in catchBlocks)
+            node.block() in reachableCatchBlocks
+        else
+            true
+
     private fun getThrownExceptions(block: ControlFlow.Block): Set<String> {
-        val result = mutableSetOf<String>()
+        val exceptions = mutableSetOf<String>()
         val pos = block.position()
         val len = block.length()
         for (i in pos until pos + len) {
-            val iter = method.methodInfo2.codeAttribute.iterator()
-            iter.move(i)
-            if (iter.byteAt(i) == Opcode.ATHROW) {
+            if (iterator.byteAt(i) == Opcode.ATHROW) {
                 val exception = cfg.frameAt(i).getStack(0)
                 if (!isCaught(block, exception)) {
-                    result.add(exception.toString())
+                    exceptions.add(exception.toString())
                 }
             }
         }
-        return result
+        return exceptions
     }
 
     private fun isCaught(block: ControlFlow.Block, exception: Type): Boolean {
-        for (catcher in block.catchers()) {
-            if (classPool.get(exception.toString())
-                            .subclassOf(classPool.get(catcher.type())) &&
-                    !isEmptyFinallyBlock(catcher) && catcher.block() != block) {
-                catcher.block().clientData = "catch"
+        block.catchers().forEach {
+            if (isSubclass(exception.toString(), it.type()) &&
+                    !isEmptyFinallyBlock(it) &&
+                    it.block() != block) {
+                reachableCatchBlocks.add(it.block())
                 return true
             }
         }
         return false
     }
 
-    private fun isEmptyFinallyBlock(catcher: ControlFlow.Catcher): Boolean {
-        return catcher.type() == "java.lang.Throwable" && hasThrowThrowable(catcher)
-    }
+    private fun isSubclass(firstClass: String, secondClass: String) =
+            classPool.get(firstClass)
+                    .subclassOf(classPool.get(secondClass))
+
+    private fun isEmptyFinallyBlock(catcher: ControlFlow.Catcher): Boolean =
+            catcher.type() == "java.lang.Throwable" &&
+                hasThrowThrowable(catcher)
+
 
     private fun hasThrowThrowable(catcher: ControlFlow.Catcher): Boolean {
-        for (i in catcher.block().position() until catcher.block().position() + catcher.block().length()) {
-            val iter = method.methodInfo2.codeAttribute.iterator()
-            iter.move(i)
-            if (iter.byteAt(i) == Opcode.ATHROW) {
+        val pos = catcher.block().position()
+        val len = catcher.block().length()
+        for (i in  pos until pos + len) {
+            if (iterator.byteAt(i) == Opcode.ATHROW) {
                 val exception = cfg.frameAt(i).getStack(0)
-                return exception.toString() == "java.lang.Throwable"
+                return if (exception.toString() == "java.lang.Throwable") {
+                    hasEmptyFinally = true
+                    true
+                } else {
+                    false
+                }
             }
         }
         return false
     }
 
-    private fun getAllCatchBlocks(): Set<ControlFlow.Block> {
-        val result = mutableSetOf<ControlFlow.Block>()
-        tree.forEach { result.addAll(it.block().catchers().map { c -> c.block() }) }
-        return result
-    }
-}
-
-fun main() {
-    val pool = ClassPool.getDefault()
-    pool.insertClassPath("./demo")
-    val cc = pool.get("Main")
-    val method = cc.getDeclaredMethod("test3")
-    val analyser = MethodAnalyzer(method)
-    println(analyser.getPossibleExceptions())
+    private fun getAllCatchBlocks(): Set<ControlFlow.Block> =
+            tree.map{
+                it.block().catchers().map { c -> c.block() }
+            }.flatten().toSet()
 }

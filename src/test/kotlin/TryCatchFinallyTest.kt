@@ -1,7 +1,6 @@
 
 import javassist.ClassPool
 import org.jetbrains.research.jem.analyzer.MethodAnalyzer
-import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
