@@ -3,9 +3,43 @@ import java.util.Random;
 
 class TryCatchFinallyTest {
 
+    void test1() {
+        try {
+            throw new IOException();
+        } catch (IOException e) {
+            throw new IllegalArgumentException();
+        }
+    }
 
+    void test2() throws IllegalAccessException {
+        throw new IllegalAccessException();
+    }
 
-    void bigTest() {
+    void test3() {
+        IllegalAccessError e = new IllegalAccessError();
+        try {
+            System.out.println("hi");
+            throw e;
+        } catch (Exception p) {
+            throw new IndexOutOfBoundsException();
+        } finally {
+
+        }
+    }
+
+    void test4() throws IOException {
+        IllegalAccessError e = new IllegalAccessError();
+        try {
+            System.out.println("hi");
+            throw e;
+        } catch (Exception w) {
+            throw new IndexOutOfBoundsException();
+        } finally {
+            throw new IOException();
+        }
+    }
+
+    void test5() {
         IOException f = new IOException();
         IndexOutOfBoundsException g = new IndexOutOfBoundsException();
         System.out.println("hi");
@@ -13,7 +47,7 @@ class TryCatchFinallyTest {
             try {
                 try {
                     throw f;
-                } catch (IOException e) {
+                } catch (IOException h) {
 
                 } finally {
                     throw g;
@@ -23,16 +57,49 @@ class TryCatchFinallyTest {
                     throw new Exception();
                 } catch (Exception y) {
                     if (new Random().nextBoolean()) {
-                        throw new MyException();
+                        throw new InterruptedException();
                     } else {
                         throw new RuntimeException();
                     }
                 }
             }
-        } catch (MyException s) {
+        } catch (InterruptedException s) {
             throw new StackOverflowError();
         } catch (RuntimeException a) {
 
+        } finally {
+
+        }
+    }
+
+    void test6() throws IOException, IllegalAccessException {
+        if (new Random().nextBoolean()) {
+            throw new IllegalAccessException();
+        } else {
+            throw new IOException();
+        }
+    }
+
+    void test7() throws IllegalAccessException {
+        try {
+            if (new Random().nextBoolean()) {
+                throw new IllegalAccessException();
+            } else {
+                throw new IOException();
+            }
+        } catch (IOException e) {
+
+        } finally {
+
+        }
+    }
+
+    void test8() {
+        try {
+            System.out.println("hi");
+            throw new MyException();
+        } catch (Error p) {
+            throw new IndexOutOfBoundsException();
         } finally {
 
         }

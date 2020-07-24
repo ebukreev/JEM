@@ -20,8 +20,8 @@ fun example(path: Path, `package`: Package) {
         //println(klass.name)
         for (method in klass.allMethods) {
             //method.view("/usr/bin/dot", "/usr/bin/firefox")
-            println(MethodAnalyzer.getThrownExceptions(method))
-            //method.catchEntries.forEach { println(it.successors); println("\n---------------------------\n") }
+            println(BadMethodAnalyzer(method).getThrownExceptions())
+            //method.catchEntries.forEach { println(it);println("\n---------------------------\n") }
         }
     }
     jar.update(cm)
