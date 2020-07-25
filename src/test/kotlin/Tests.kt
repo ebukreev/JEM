@@ -1,10 +1,10 @@
 
 import javassist.ClassPool
-import org.jetbrains.research.jem.analyzer.MethodAnalyzer
+import org.jetbrains.research.jem.MethodAnalyzer
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-class TryCatchFinallyTest {
+class Tests {
 
     @Test
     fun tryCatchFinallyTest() {
