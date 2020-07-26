@@ -5,11 +5,13 @@ import javassist.CtMethod
 import javassist.bytecode.Opcode.*
 import javassist.bytecode.analysis.ControlFlow
 
-internal class InvokeAnalyzer(methodForAnalysis: CtMethod) {
+internal class InvokeAnalyzer(method: CtMethod,
+                              private val blockAnalyzer: BlockAnalyzer) {
 
-    private val method = methodForAnalysis
     private val iterator = method.methodInfo2.codeAttribute.iterator()
     private val constPool = method.methodInfo2.constPool
+    private val classPool = method.declaringClass.classPool
+    private val initsName = setOf("<init>", "<clinit>")
     private val invokeOpcodes = setOf(
             INVOKEDYNAMIC,
             INVOKEINTERFACE,
@@ -18,7 +20,7 @@ internal class InvokeAnalyzer(methodForAnalysis: CtMethod) {
             INVOKEVIRTUAL
     )
 
-    fun getInvokedMethods(block: ControlFlow.Block): List<Triple<String, String, String>> {
+    private fun getInvokedMethods(block: ControlFlow.Block): List<Triple<String?, String, String>> {
         val methods = mutableListOf<Triple<String, String, String>>()
         val pos = block.position()
         val len = block.length()
@@ -38,10 +40,28 @@ internal class InvokeAnalyzer(methodForAnalysis: CtMethod) {
                     val methodDescriptor = constPool.getInterfaceMethodrefType(invokedMethod)
                     methods.add(Triple(interfaceNameName, methodName, methodDescriptor))
                 }
-//                INVOKEDYNAMIC ->
-//                    methods.add(constPool.getInvokeDynamicType(iterator.u16bitAt(i + 1)))
             }
         }
         return methods
+    }
+
+    fun getPossibleExceptionsFromMethods(block: ControlFlow.Block): Set<String> {
+        val exceptions = mutableSetOf<String>()
+        for ((c, m, d) in getInvokedMethods(block)) {
+            if (c == null || c.contains("java.lang") ) {
+                continue
+            }
+            val `class` = classPool.get(c)
+            val method = if (m in initsName)
+                `class`.getConstructor(d).toMethod(m, classPool.get(c))
+            else
+                `class`.getMethod(m, d)
+            val methodAnalyzer = MethodAnalyzer(method)
+            val possibleExceptions = methodAnalyzer
+                    .getPossibleExceptions()
+                    .takeWhile { !blockAnalyzer.isCaught(block, it) }
+            exceptions.addAll(possibleExceptions)
+        }
+        return exceptions
     }
 }

@@ -4,14 +4,13 @@ import javassist.CtMethod
 import javassist.bytecode.Opcode
 import javassist.bytecode.analysis.ControlFlow
 
-internal class BlockAnalyzer(methodForAnalysis: CtMethod) {
+internal class BlockAnalyzer(method: CtMethod) {
 
-    private val method = methodForAnalysis
     private val iterator = method.methodInfo2.codeAttribute.iterator()
     private val cfg = ControlFlow(method)
     private val classPool = method.declaringClass.classPool
     internal val reachableCatchBlocks = mutableSetOf<ControlFlow.Block>()
-    private val invokeAnalyzer = InvokeAnalyzer(method)
+    private val invokeAnalyzer = InvokeAnalyzer(method, this)
     internal var hasEmptyFinally = false
 
     fun getThrownExceptions(block: ControlFlow.Block): Set<String> {
@@ -48,7 +47,8 @@ internal class BlockAnalyzer(methodForAnalysis: CtMethod) {
     private fun isEmptyFinallyBlock(catcher: ControlFlow.Catcher): Boolean =
             catcher.type() == "java.lang.Throwable" &&
                     hasThrowThrowable(catcher) &&
-                    invokeAnalyzer.getInvokedMethods(catcher.block()).isEmpty()
+                    invokeAnalyzer
+                            .getPossibleExceptionsFromMethods(catcher.block()).isEmpty()
 
     private fun hasThrowThrowable(catcher: ControlFlow.Catcher): Boolean {
         val pos = catcher.block().position()
