@@ -1,6 +1,5 @@
 package org.jetbrains.research.jem
 
-import javassist.CtClass
 import javassist.CtMethod
 import javassist.bytecode.Opcode.*
 import javassist.bytecode.analysis.ControlFlow
@@ -12,13 +11,6 @@ internal class InvokeAnalyzer(method: CtMethod,
     private val constPool = method.methodInfo2.constPool
     private val classPool = method.declaringClass.classPool
     private val initsName = setOf("<init>", "<clinit>")
-    private val invokeOpcodes = setOf(
-            INVOKEDYNAMIC,
-            INVOKEINTERFACE,
-            INVOKESPECIAL,
-            INVOKESTATIC,
-            INVOKEVIRTUAL
-    )
 
     private fun getInvokedMethods(block: ControlFlow.Block): List<Triple<String?, String, String>> {
         val methods = mutableListOf<Triple<String, String, String>>()
@@ -48,7 +40,7 @@ internal class InvokeAnalyzer(method: CtMethod,
     fun getPossibleExceptionsFromMethods(block: ControlFlow.Block): Set<String> {
         val exceptions = mutableSetOf<String>()
         for ((c, m, d) in getInvokedMethods(block)) {
-            if (c == null || c.contains("java.lang") ) {
+            if (c == null || c.contains("java.lang")) {
                 continue
             }
             val `class` = classPool.get(c)
@@ -56,6 +48,9 @@ internal class InvokeAnalyzer(method: CtMethod,
                 `class`.getConstructor(d).toMethod(m, classPool.get(c))
             else
                 `class`.getMethod(m, d)
+            if (ControlFlow(method).dominatorTree() == null) {
+                continue
+            }
             val methodAnalyzer = MethodAnalyzer(method)
             val possibleExceptions = methodAnalyzer
                     .getPossibleExceptions()

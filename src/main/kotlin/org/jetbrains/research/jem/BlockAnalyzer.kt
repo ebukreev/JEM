@@ -12,6 +12,7 @@ internal class BlockAnalyzer(method: CtMethod) {
     internal val reachableCatchBlocks = mutableSetOf<ControlFlow.Block>()
     private val invokeAnalyzer = InvokeAnalyzer(method, this)
     internal var hasEmptyFinally = false
+    private val isKotlin = method.declaringClass.isKotlin
 
     fun getThrownExceptions(block: ControlFlow.Block): Set<String> {
         val exceptions = mutableSetOf<String>()
@@ -19,7 +20,7 @@ internal class BlockAnalyzer(method: CtMethod) {
         val len = block.length()
         for (i in pos until pos + len) {
             if (iterator.byteAt(i) == Opcode.ATHROW) {
-                val exception = cfg.frameAt(i).getStack(0)
+                val exception = cfg.frameAt(i).getStack(if (isKotlin) 1 else 0)
                 if (!isCaught(block, exception.toString())) {
                     exceptions.add(exception.toString())
                 }
@@ -53,15 +54,18 @@ internal class BlockAnalyzer(method: CtMethod) {
     private fun hasThrowThrowable(catcher: ControlFlow.Catcher): Boolean {
         val pos = catcher.block().position()
         val len = catcher.block().length()
+        var previousInst = pos
         for (i in  pos until pos + len) {
             if (iterator.byteAt(i) == Opcode.ATHROW) {
-                val exception = cfg.frameAt(i).getStack(0)
+                val exception = cfg.frameAt(if (isKotlin) previousInst else i).getStack(0)
                 return if (exception.toString() == "java.lang.Throwable") {
                     hasEmptyFinally = true
                     true
                 } else {
                     false
                 }
+            } else if (cfg.frameAt(i) != null) {
+                previousInst = i
             }
         }
         return false

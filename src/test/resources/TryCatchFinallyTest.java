@@ -18,9 +18,8 @@ class TryCatchFinallyTest {
     void test3() {
         IllegalAccessError e = new IllegalAccessError();
         try {
-            System.out.println("hi");
             throw e;
-        } catch (Exception p) {
+        } catch (NullPointerException p) {
             throw new IndexOutOfBoundsException();
         } finally {
 
@@ -42,7 +41,6 @@ class TryCatchFinallyTest {
     void test5() {
         IOException f = new IOException();
         IndexOutOfBoundsException g = new IndexOutOfBoundsException();
-        System.out.println("hi");
         try {
             try {
                 try {

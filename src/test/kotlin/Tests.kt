@@ -16,16 +16,25 @@ class Tests {
                 setOf("java.lang.StackOverflowError"),
                 setOf("java.lang.IllegalAccessException", "java.io.IOException"),
                 setOf("java.lang.IllegalAccessException"),
-                setOf("MyException")
+                setOf("MyException", "java.lang.IndexOutOfBoundsException"),
+                setOf("KotlinMyException", "java.lang.IndexOutOfBoundsException")
         )
         val pool = ClassPool.getDefault()
         pool.insertClassPath("./src/test/resources")
+        pool.insertClassPath("./src/test/resources/kotlin")
         val `class` = pool.get("TryCatchFinallyTest")
         for (i in 1..8) {
             val method = `class`.getDeclaredMethod("test$i")
             val ma = MethodAnalyzer(method)
             println(i)
             assertEquals(ma.getPossibleExceptions(), exceptions[i - 1])
+        }
+        val kclass = pool.get("KotlinTryCatchFinallyTest")
+        for (i in 1..8) {
+            val method = kclass.getDeclaredMethod("test$i")
+            val ma = MethodAnalyzer(method)
+            println(i)
+            assertEquals(ma.getPossibleExceptions(), exceptions[if (i == 8) i else i - 1])
         }
     }
 }

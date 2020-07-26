@@ -15,7 +15,7 @@ class MethodAnalyzer(methodForAnalysis: CtMethod) {
     fun getPossibleExceptions(): Set<String> {
         val exceptions = mutableSetOf<String>()
         for (node in tree) {
-            if (node.children() == 0 && isReachable(node)) {
+            if (isReachable(node)) {
                 exceptions.addAll(blockAnalyzer
                         .getThrownExceptions(node.block()))
                 exceptions.addAll(invokeAnalyzer
