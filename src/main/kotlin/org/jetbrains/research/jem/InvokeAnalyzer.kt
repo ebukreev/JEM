@@ -1,6 +1,7 @@
 package org.jetbrains.research.jem
 
 import javassist.CtMethod
+import javassist.Modifier
 import javassist.bytecode.Opcode.*
 import javassist.bytecode.analysis.ControlFlow
 
@@ -17,21 +18,25 @@ internal class InvokeAnalyzer(method: CtMethod,
         val pos = block.position()
         val len = block.length()
         for (i in pos until pos + len) {
-            when (iterator.byteAt(i)) {
-                INVOKEVIRTUAL, INVOKESTATIC, INVOKESPECIAL -> {
-                    val invokedMethod = iterator.u16bitAt(i + 1)
-                    val className = constPool.getMethodrefClassName(invokedMethod)
-                    val methodName = constPool.getMethodrefName(invokedMethod)
-                    val methodDescriptor = constPool.getMethodrefType(invokedMethod)
-                    methods.add(Triple(className, methodName, methodDescriptor))
+            try {
+                when (iterator.byteAt(i)) {
+                    INVOKEVIRTUAL, INVOKESTATIC, INVOKESPECIAL -> {
+                        val invokedMethod = iterator.u16bitAt(i + 1)
+                        val className = constPool.getMethodrefClassName(invokedMethod)
+                        val methodName = constPool.getMethodrefName(invokedMethod)
+                        val methodDescriptor = constPool.getMethodrefType(invokedMethod)
+                        methods.add(Triple(className, methodName, methodDescriptor))
+                    }
+                    INVOKEINTERFACE -> {
+                        val invokedMethod = iterator.u16bitAt(i + 1)
+                        val interfaceNameName = constPool.getInterfaceMethodrefClassName(invokedMethod)
+                        val methodName = constPool.getInterfaceMethodrefName(invokedMethod)
+                        val methodDescriptor = constPool.getInterfaceMethodrefType(invokedMethod)
+                        methods.add(Triple(interfaceNameName, methodName, methodDescriptor))
+                    }
                 }
-                INVOKEINTERFACE -> {
-                    val invokedMethod = iterator.u16bitAt(i + 1)
-                    val interfaceNameName = constPool.getInterfaceMethodrefClassName(invokedMethod)
-                    val methodName = constPool.getInterfaceMethodrefName(invokedMethod)
-                    val methodDescriptor = constPool.getInterfaceMethodrefType(invokedMethod)
-                    methods.add(Triple(interfaceNameName, methodName, methodDescriptor))
-                }
+            } catch (e: IndexOutOfBoundsException) {
+                continue
             }
         }
         return methods
@@ -40,7 +45,7 @@ internal class InvokeAnalyzer(method: CtMethod,
     fun getPossibleExceptionsFromMethods(block: ControlFlow.Block): Set<String> {
         val exceptions = mutableSetOf<String>()
         for ((c, m, d) in getInvokedMethods(block)) {
-            if (c == null || c.contains("java.lang")) {
+            if (c == null) {
                 continue
             }
             val `class` = classPool.get(c)
@@ -48,7 +53,15 @@ internal class InvokeAnalyzer(method: CtMethod,
                 `class`.getConstructor(d).toMethod(m, classPool.get(c))
             else
                 `class`.getMethod(m, d)
+            if (Modifier.isNative(method.modifiers))
+                continue
             if (ControlFlow(method).dominatorTree() == null) {
+                exceptions.addAll(method.exceptionTypes.map { it.name }
+                        .takeWhile { !blockAnalyzer.isCaught(block, it) })
+                continue
+            } else if (exactMethodName(method) in MethodAnalyzer.previousMethods.keys) {
+                exceptions.addAll(MethodAnalyzer.previousMethods[exactMethodName(method)]!!
+                        .takeWhile { !blockAnalyzer.isCaught(block, it) })
                 continue
             }
             val methodAnalyzer = MethodAnalyzer(method)
@@ -59,4 +72,9 @@ internal class InvokeAnalyzer(method: CtMethod,
         }
         return exceptions
     }
+
+    internal fun exactMethodName(method: CtMethod): String =
+            method.declaringClass.name + " " +
+                    method.name + " " +
+                    method.methodInfo2.descriptor
 }

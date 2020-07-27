@@ -12,6 +12,17 @@ class MethodAnalyzer(methodForAnalysis: CtMethod) {
     private val blockAnalyzer = BlockAnalyzer(method)
     private val invokeAnalyzer = InvokeAnalyzer(method, blockAnalyzer)
 
+    init {
+        if (!previousMethods.containsKey(invokeAnalyzer.exactMethodName(method)))
+            previousMethods[invokeAnalyzer.exactMethodName(method)] =
+                    method.exceptionTypes.map { it.name }.toSet()
+
+    }
+
+    companion object {
+        val previousMethods = hashMapOf<String, Set<String>>()
+    }
+
     fun getPossibleExceptions(): Set<String> {
         val exceptions = mutableSetOf<String>()
         for (node in tree) {
@@ -22,10 +33,12 @@ class MethodAnalyzer(methodForAnalysis: CtMethod) {
                         .getPossibleExceptionsFromMethods(node.block()))
             }
         }
-        return if (blockAnalyzer.hasEmptyFinally)
-            exceptions.minus("java.lang.Throwable")
-        else
-            exceptions
+        if (blockAnalyzer.hasEmptyFinally) {
+            exceptions.remove("java.lang.Throwable")
+        }
+        previousMethods[invokeAnalyzer.exactMethodName(method)] =
+                exceptions
+       return exceptions
     }
 
     private fun isReachable(node: ControlFlow.Node): Boolean =
