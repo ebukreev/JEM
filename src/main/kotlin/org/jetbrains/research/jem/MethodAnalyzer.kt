@@ -52,7 +52,9 @@ class MethodAnalyzer(private val method: CtMethod) {
        return exceptions
     }
 
-    private fun isReachable(node: ControlFlow.Node, catchBlocks: Set<ControlFlow.Block>, blockAnalyzer: BlockAnalyzer): Boolean =
+    private fun isReachable(node: ControlFlow.Node,
+                            catchBlocks: Set<ControlFlow.Block>,
+                            blockAnalyzer: BlockAnalyzer): Boolean =
         if (node.block() in catchBlocks)
             node.block() in blockAnalyzer.reachableCatchBlocks
         else

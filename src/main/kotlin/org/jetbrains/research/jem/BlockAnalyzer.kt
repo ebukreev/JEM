@@ -16,6 +16,12 @@ internal class BlockAnalyzer(method: CtMethod) {
     private val initsName = setOf("<init>", "<clinit>")
     internal var hasEmptyFinally = false
     private val isKotlin = method.declaringClass.isKotlin
+    private val invokeOpcodes = setOf(
+            Opcode.INVOKEINTERFACE,
+            Opcode.INVOKESPECIAL,
+            Opcode.INVOKEVIRTUAL,
+            Opcode.INVOKESTATIC
+    )
 
     fun getThrownExceptions(block: ControlFlow.Block): Set<String> {
         val exceptions = mutableSetOf<String>()
@@ -61,7 +67,7 @@ internal class BlockAnalyzer(method: CtMethod) {
         val len = catcher.block().length()
         var previousInst = pos
         for (i in  pos until pos + len) {
-            if (iterator.byteAt(i) in 182..185) {
+            if (iterator.byteAt(i) in invokeOpcodes) {
                 val invokedMethod = iterator.u16bitAt(i + 1)
                 val c = constPool.getMethodrefClassName(invokedMethod)
                 val m = constPool.getMethodrefName(invokedMethod)
