@@ -2,7 +2,6 @@ package org.jetbrains.research.jem
 
 import javassist.CtMethod
 import javassist.Modifier
-import javassist.NotFoundException
 import javassist.bytecode.Opcode.*
 import javassist.bytecode.analysis.ControlFlow
 
@@ -75,7 +74,7 @@ internal class InvokeAnalyzer(method: CtMethod,
                         .getPossibleExceptions()
                         .takeWhile { !blockAnalyzer.isCaught(block, it) }
                 exceptions.addAll(possibleExceptions)
-            } catch (e: NotFoundException) {
+            } catch (e: Exception) {
                 continue
             }
         }
