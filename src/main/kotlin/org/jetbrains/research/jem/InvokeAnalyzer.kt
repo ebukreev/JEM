@@ -2,6 +2,7 @@ package org.jetbrains.research.jem
 
 import javassist.CtMethod
 import javassist.Modifier
+import javassist.NotFoundException
 import javassist.bytecode.Opcode.*
 import javassist.bytecode.analysis.ControlFlow
 
@@ -12,6 +13,13 @@ internal class InvokeAnalyzer(method: CtMethod,
     private val constPool = method.methodInfo2.constPool
     private val classPool = method.declaringClass.classPool
     private val initsName = setOf("<init>", "<clinit>")
+
+    companion object {
+        internal fun exactMethodName(method: CtMethod): String =
+                method.declaringClass.name + " " +
+                        method.name + " " +
+                        method.methodInfo2.descriptor
+    }
 
     private fun getInvokedMethods(block: ControlFlow.Block): List<Triple<String?, String, String>> {
         val methods = mutableListOf<Triple<String, String, String>>()
@@ -35,7 +43,7 @@ internal class InvokeAnalyzer(method: CtMethod,
                         methods.add(Triple(interfaceNameName, methodName, methodDescriptor))
                     }
                 }
-            } catch (e: IndexOutOfBoundsException) {
+            } catch (e: Exception) {
                 continue
             }
         }
@@ -44,37 +52,33 @@ internal class InvokeAnalyzer(method: CtMethod,
 
     fun getPossibleExceptionsFromMethods(block: ControlFlow.Block): Set<String> {
         val exceptions = mutableSetOf<String>()
-        for ((c, m, d) in getInvokedMethods(block)) {
+        val invokedMethods = getInvokedMethods(block)
+        for ((c, m, d) in invokedMethods) {
             if (c == null) {
                 continue
             }
-            val `class` = classPool.get(c)
-            val method = if (m in initsName)
-                `class`.getConstructor(d).toMethod(m, classPool.get(c))
-            else
-                `class`.getMethod(m, d)
-            if (Modifier.isNative(method.modifiers))
-                continue
-            if (ControlFlow(method).dominatorTree() == null) {
-                exceptions.addAll(method.exceptionTypes.map { it.name }
-                        .takeWhile { !blockAnalyzer.isCaught(block, it) })
-                continue
-            } else if (exactMethodName(method) in MethodAnalyzer.previousMethods.keys) {
-                exceptions.addAll(MethodAnalyzer.previousMethods[exactMethodName(method)]!!
-                        .takeWhile { !blockAnalyzer.isCaught(block, it) })
+            try {
+                val `class` = classPool.get(c)
+                val method = if (m in initsName)
+                    `class`.getConstructor(d).toMethod(m, classPool.get(c))
+                else
+                    `class`.getMethod(m, d)
+                if (Modifier.isNative(method.modifiers))
+                    continue
+                if (exactMethodName(method) in MethodAnalyzer.previousMethods.keys) {
+                    exceptions.addAll(MethodAnalyzer.previousMethods[exactMethodName(method)]!!
+                            .takeWhile { !blockAnalyzer.isCaught(block, it) })
+                    continue
+                }
+                val methodAnalyzer = MethodAnalyzer(method)
+                val possibleExceptions = methodAnalyzer
+                        .getPossibleExceptions()
+                        .takeWhile { !blockAnalyzer.isCaught(block, it) }
+                exceptions.addAll(possibleExceptions)
+            } catch (e: NotFoundException) {
                 continue
             }
-            val methodAnalyzer = MethodAnalyzer(method)
-            val possibleExceptions = methodAnalyzer
-                    .getPossibleExceptions()
-                    .takeWhile { !blockAnalyzer.isCaught(block, it) }
-            exceptions.addAll(possibleExceptions)
         }
         return exceptions
     }
-
-    internal fun exactMethodName(method: CtMethod): String =
-            method.declaringClass.name + " " +
-                    method.name + " " +
-                    method.methodInfo2.descriptor
 }

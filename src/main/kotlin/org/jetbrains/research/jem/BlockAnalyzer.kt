@@ -1,6 +1,8 @@
 package org.jetbrains.research.jem
 
 import javassist.CtMethod
+import javassist.Modifier
+import javassist.bytecode.BadBytecode
 import javassist.bytecode.Opcode
 import javassist.bytecode.analysis.ControlFlow
 
@@ -10,7 +12,8 @@ internal class BlockAnalyzer(method: CtMethod) {
     private val cfg = ControlFlow(method)
     private val classPool = method.declaringClass.classPool
     internal val reachableCatchBlocks = mutableSetOf<ControlFlow.Block>()
-    private val invokeAnalyzer = InvokeAnalyzer(method, this)
+    private val constPool = method.methodInfo2.constPool
+    private val initsName = setOf("<init>", "<clinit>")
     internal var hasEmptyFinally = false
     private val isKotlin = method.declaringClass.isKotlin
 
@@ -20,7 +23,11 @@ internal class BlockAnalyzer(method: CtMethod) {
         val len = block.length()
         for (i in pos until pos + len) {
             if (iterator.byteAt(i) == Opcode.ATHROW) {
-                val exception = cfg.frameAt(i).getStack(if (isKotlin) 1 else 0)
+                val exception = try {
+                    cfg.frameAt(i).getStack(if (isKotlin) 1 else 0)
+                } catch (e: Exception) {
+                    continue
+                }
                 if (!isCaught(block, exception.toString())) {
                     exceptions.add(exception.toString())
                 }
@@ -47,24 +54,43 @@ internal class BlockAnalyzer(method: CtMethod) {
 
     private fun isEmptyFinallyBlock(catcher: ControlFlow.Catcher): Boolean =
             catcher.type() == "java.lang.Throwable" &&
-                    hasThrowThrowable(catcher) &&
-                    invokeAnalyzer
-                            .getPossibleExceptionsFromMethods(catcher.block()).isEmpty()
+                    hasThrowThrowable(catcher)
 
     private fun hasThrowThrowable(catcher: ControlFlow.Catcher): Boolean {
         val pos = catcher.block().position()
         val len = catcher.block().length()
         var previousInst = pos
         for (i in  pos until pos + len) {
+            if (iterator.byteAt(i) in 182..185) {
+                val invokedMethod = iterator.u16bitAt(i + 1)
+                val c = constPool.getMethodrefClassName(invokedMethod)
+                val m = constPool.getMethodrefName(invokedMethod)
+                val d = constPool.getMethodrefType(invokedMethod)
+                val `class` = classPool.get(c)
+                val method = if (m in initsName)
+                    `class`.getConstructor(d).toMethod(m, classPool.get(c))
+                else
+                    `class`.getMethod(m, d)
+                if (Modifier.isNative(method.modifiers))
+                    continue
+                val methodAnalyzer = MethodAnalyzer(method)
+                val possibleExceptions = methodAnalyzer.getPossibleExceptions()
+                if (possibleExceptions.isNotEmpty())
+                    return false
+            }
             if (iterator.byteAt(i) == Opcode.ATHROW) {
-                val exception = cfg.frameAt(if (isKotlin) previousInst else i).getStack(0)
-                return if (exception.toString() == "java.lang.Throwable") {
-                    hasEmptyFinally = true
-                    true
-                } else {
-                    false
+                try {
+                    val exception = cfg.frameAt(if (isKotlin) previousInst else i).getStack(0)
+                    return if (exception.toString() == "java.lang.Throwable") {
+                        hasEmptyFinally = true
+                        true
+                    } else {
+                        false
+                    }
+                } catch (e: ConcurrentModificationException) {
+                    continue
                 }
-            } else if (cfg.frameAt(i) != null) {
+            } else if (isKotlin && cfg.frameAt(i) != null) {
                 previousInst = i
             }
         }
