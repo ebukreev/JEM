@@ -39,8 +39,7 @@ object JarAnalyzer {
 
         val libName = pathToJar.substringAfterLast("/").removeSuffix(".jar")
         val lib = Library(libName, classesForLibEntity)
-        val gson = Gson()
         val filePath = "./analyzedLibs/$libName.json"
-        FileWriter(filePath).use { gson.toJson(lib, it) }
+        FileWriter(filePath).use { Gson().toJson(lib, it) }
     }
 }
