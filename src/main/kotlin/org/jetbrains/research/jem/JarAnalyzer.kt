@@ -22,6 +22,7 @@ object JarAnalyzer {
         }
 
         val cc = pool.get(classes.toTypedArray())
+        MethodAnalyzer.initPolymorphismAnalyzer(PolymorphismAnalyzer(cc))
 
         val classesForLibEntity = mutableListOf<Class>()
         for (c in cc) {

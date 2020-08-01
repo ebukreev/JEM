@@ -23,18 +23,18 @@ class Tests {
         pool.insertClassPath("./src/test/resources")
         pool.insertClassPath("./src/test/resources/kotlin")
         val `class` = pool.get("TryCatchFinallyTest")
-        for (i in 1..8) {
+        for (i in 1..7) {
             val method = `class`.getDeclaredMethod("test$i")
             val ma = MethodAnalyzer(method)
             println(i)
             assertEquals(ma.getPossibleExceptions(), exceptions[i - 1])
         }
         val kclass = pool.get("KotlinTryCatchFinallyTest")
-        for (i in 1..8) {
+        for (i in 1..7) {
             val method = kclass.getDeclaredMethod("test$i")
             val ma = MethodAnalyzer(method)
             println(i)
-            assertEquals(ma.getPossibleExceptions(), exceptions[if (i == 8) i else i - 1])
+            assertEquals(ma.getPossibleExceptions(), exceptions[i - 1])
         }
     }
 }

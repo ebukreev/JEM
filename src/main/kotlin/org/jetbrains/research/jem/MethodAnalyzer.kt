@@ -8,28 +8,36 @@ import java.util.concurrent.ConcurrentHashMap
 
 class MethodAnalyzer(private val method: CtMethod) {
 
+    private val methodInformation = MethodInformation(method)
+
     init {
-        if (!previousMethods.containsKey(InvokeAnalyzer.exactMethodName(method))) {
+        if (!polyMethodsExceptions.containsKey(methodInformation)) {
             try {
-                previousMethods[InvokeAnalyzer.exactMethodName(method)] =
+                previousMethods[methodInformation] =
                         method.exceptionTypes.map { it.name }.toSet()
             } catch (e: NotFoundException) {}
         }
     }
 
-    companion object {
-        val previousMethods = ConcurrentHashMap<String, Set<String>>()
+    internal companion object {
+        var polyMethodsExceptions = PolymorphismAnalyzer(emptyArray()).methodToExceptions
+        fun initPolymorphismAnalyzer(pa: PolymorphismAnalyzer) {
+            polyMethodsExceptions = pa.methodToExceptions
+        }
+        val previousMethods = ConcurrentHashMap<MethodInformation, Set<String>>()
     }
 
     fun getPossibleExceptions(): Set<String> {
+        if (polyMethodsExceptions.containsKey(methodInformation)) {
+            return polyMethodsExceptions.getValue(methodInformation)
+        }
         val cfg = try {
             ControlFlow(method)
         } catch (e: BadBytecode) {
             return setOf()
         }
         val tree = cfg.dominatorTree() ?:
-            return previousMethods[InvokeAnalyzer.exactMethodName(method)] ?:
-                setOf()
+            return previousMethods.getValue(methodInformation)
         val catchBlocks = getAllCatchBlocks(tree)
         val blockAnalyzer = BlockAnalyzer(method)
         val invokeAnalyzer = InvokeAnalyzer(method, blockAnalyzer)
@@ -46,7 +54,7 @@ class MethodAnalyzer(private val method: CtMethod) {
             exceptions.remove("java.lang.Throwable")
         }
         if (exceptions.isNotEmpty()) {
-            previousMethods[InvokeAnalyzer.exactMethodName(method)] =
+            previousMethods[methodInformation] =
                     exceptions
         }
        return exceptions

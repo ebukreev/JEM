@@ -1,5 +1,7 @@
 package org.jetbrains.research.jem
 
+import javassist.CtMethod
+
 data class Library(
         val libName: String,
         val classes: List<Class>
@@ -15,3 +17,11 @@ data class Method(
         val descriptor: String,
         val exceptions: Set<String>
 )
+
+data class MethodInformation(
+        val `class`: String?,
+        val name: String,
+        val descriptor: String
+) {
+    constructor(method: CtMethod): this(method.declaringClass.name, method.name, method.name)
+}

@@ -2,7 +2,6 @@ package org.jetbrains.research.jem
 
 import javassist.CtMethod
 import javassist.Modifier
-import javassist.bytecode.BadBytecode
 import javassist.bytecode.Opcode
 import javassist.bytecode.analysis.ControlFlow
 
@@ -85,16 +84,12 @@ internal class BlockAnalyzer(method: CtMethod) {
                     return false
             }
             if (iterator.byteAt(i) == Opcode.ATHROW) {
-                try {
-                    val exception = cfg.frameAt(if (isKotlin) previousInst else i).getStack(0)
-                    return if (exception.toString() == "java.lang.Throwable") {
-                        hasEmptyFinally = true
-                        true
-                    } else {
-                        false
-                    }
-                } catch (e: ConcurrentModificationException) {
-                    continue
+                val exception = cfg.frameAt(if (isKotlin) previousInst else i).getStack(0)
+                return if (exception.toString() == "java.lang.Throwable") {
+                    hasEmptyFinally = true
+                    true
+                } else {
+                    false
                 }
             } else if (isKotlin && cfg.frameAt(i) != null) {
                 previousInst = i
