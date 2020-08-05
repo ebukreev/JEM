@@ -13,7 +13,7 @@ class MethodAnalyzer(private val method: CtMethod) {
     init {
         try {
             previousMethods[methodInformation] =
-                    method.exceptionTypes.map { it.name }.toSet()
+                    emptySet()
         } catch (e: NotFoundException) {}
     }
 
@@ -26,6 +26,9 @@ class MethodAnalyzer(private val method: CtMethod) {
     }
 
     fun getPossibleExceptions(): Set<String> {
+        if (polyMethodsExceptions.containsKey(methodInformation)) {
+            return polyMethodsExceptions.getValue(methodInformation)
+        }
         val cfg = try {
             ControlFlow(method)
         } catch (e: BadBytecode) {
@@ -36,7 +39,7 @@ class MethodAnalyzer(private val method: CtMethod) {
         val catchBlocks = getAllCatchBlocks(tree)
         val blockAnalyzer = BlockAnalyzer(method)
         val invokeAnalyzer = InvokeAnalyzer(method, blockAnalyzer)
-        val exceptions = mutableSetOf<String>()
+        var exceptions = mutableSetOf<String>()
         for (node in tree) {
             if (isReachable(node, catchBlocks, blockAnalyzer)) {
                 exceptions.addAll(blockAnalyzer
@@ -48,9 +51,10 @@ class MethodAnalyzer(private val method: CtMethod) {
         if (blockAnalyzer.hasEmptyFinally) {
             exceptions.remove("java.lang.Throwable")
         }
-        if (exceptions.isNotEmpty()) {
+        while (exceptions != previousMethods.getValue(methodInformation)) {
             previousMethods[methodInformation] =
                     exceptions
+            exceptions = getPossibleExceptions().toMutableSet()
         }
        return exceptions
     }
