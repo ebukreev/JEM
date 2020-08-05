@@ -5,7 +5,7 @@ import javassist.Modifier
 import javassist.bytecode.Opcode.*
 import javassist.bytecode.analysis.ControlFlow
 
-internal class InvokeAnalyzer(private val method: CtMethod,
+internal class InvokeAnalyzer(method: CtMethod,
                               private val blockAnalyzer: BlockAnalyzer) {
 
     private val iterator = method.methodInfo2.codeAttribute.iterator()
@@ -43,7 +43,6 @@ internal class InvokeAnalyzer(private val method: CtMethod,
     }
 
     fun getPossibleExceptionsFromMethods(block: ControlFlow.Block): Set<String> {
-        val methodInformation = MethodInformation(method)
         val exceptions = mutableSetOf<String>()
         val invokedMethods = getInvokedMethods(block)
         for ((c, m, d) in invokedMethods) {
@@ -58,6 +57,7 @@ internal class InvokeAnalyzer(private val method: CtMethod,
                     `class`.getMethod(m, d)
                 if (Modifier.isNative(method.modifiers))
                     continue
+                val methodInformation = MethodInformation(method)
                 if (MethodAnalyzer.polyMethodsExceptions.containsKey(methodInformation)) {
                     exceptions.addAll(MethodAnalyzer.polyMethodsExceptions
                             .getValue(methodInformation)

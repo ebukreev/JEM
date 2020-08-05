@@ -11,12 +11,10 @@ class MethodAnalyzer(private val method: CtMethod) {
     private val methodInformation = MethodInformation(method)
 
     init {
-        if (!polyMethodsExceptions.containsKey(methodInformation)) {
-            try {
-                previousMethods[methodInformation] =
-                        method.exceptionTypes.map { it.name }.toSet()
-            } catch (e: NotFoundException) {}
-        }
+        try {
+            previousMethods[methodInformation] =
+                    method.exceptionTypes.map { it.name }.toSet()
+        } catch (e: NotFoundException) {}
     }
 
     internal companion object {
@@ -28,9 +26,6 @@ class MethodAnalyzer(private val method: CtMethod) {
     }
 
     fun getPossibleExceptions(): Set<String> {
-        if (polyMethodsExceptions.containsKey(methodInformation)) {
-            return polyMethodsExceptions.getValue(methodInformation)
-        }
         val cfg = try {
             ControlFlow(method)
         } catch (e: BadBytecode) {
