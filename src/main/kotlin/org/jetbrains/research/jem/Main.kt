@@ -1,7 +1,7 @@
 package org.jetbrains.research.jem
 
 fun main() {
-   JarAnalyzer.analyze("./jarsfortest/soot.jar")
+   JarAnalyzer.analyze("./jarsfortest/kfg.jar")
 //    val lib = InfoReader.read("./analyzedLibs/kfg.json")
 //    for (klass in lib.classes) {
 //        println(klass.className)

@@ -31,12 +31,16 @@ class PolymorphismAnalyzer(private val classPool: Array<CtClass>) {
         val methodToOverriders = mutableMapOf<MethodInformation, MutableSet<CtMethod>>()
         for ((`class`, subclasses) in heirs) {
             `class`.methods.forEach { m ->
+                val methodInformation = MethodInformation(m)
                 subclasses.forEach { sc ->
-                    (methodToOverriders.getOrPut(MethodInformation(m)) { mutableSetOf(m) })
+                    (methodToOverriders.getOrPut(methodInformation) { mutableSetOf() })
                             .addAll(sc.methods.filter {
                                 it.name == m.name &&
                                         it.methodInfo2.descriptor == m.methodInfo2.descriptor
                             })
+                }
+                if (methodToOverriders.getValue(methodInformation).isEmpty()) {
+                    methodToOverriders[methodInformation] = mutableSetOf(m)
                 }
             }
         }
