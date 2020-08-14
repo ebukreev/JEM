@@ -1,4 +1,4 @@
-package org.jetbrains.research.jem
+package org.jetbrains.research.jem.interaction
 
 import com.google.gson.Gson
 import java.io.FileReader

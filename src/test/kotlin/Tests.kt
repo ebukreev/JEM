@@ -1,7 +1,7 @@
 
 import javassist.ClassPool
-import org.jetbrains.research.jem.MethodAnalyzer
-import kotlin.test.Test
+import org.jetbrains.research.jem.analysis.MethodAnalyzer
+import org.junit.Test
 import kotlin.test.assertEquals
 
 class Tests {

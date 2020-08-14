@@ -1,5 +1,7 @@
 package org.jetbrains.research.jem
 
+import org.jetbrains.research.jem.interaction.JarAnalyzer
+
 fun main() {
    JarAnalyzer.analyze("./jarsfortest/kfg.jar")
 //    val lib = InfoReader.read("./analyzedLibs/kfg.json")

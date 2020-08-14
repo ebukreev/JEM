@@ -1,9 +1,10 @@
-package org.jetbrains.research.jem
+package org.jetbrains.research.jem.analysis
 
 import javassist.CtMethod
 import javassist.NotFoundException
 import javassist.bytecode.BadBytecode
 import javassist.bytecode.analysis.*
+import org.jetbrains.research.jem.interaction.MethodInformation
 import java.util.concurrent.ConcurrentHashMap
 
 class MethodAnalyzer(private val method: CtMethod) {
@@ -18,7 +19,9 @@ class MethodAnalyzer(private val method: CtMethod) {
     }
 
     internal companion object {
-        var polyMethodsExceptions = PolymorphismAnalyzer(emptyArray()).methodToExceptions
+        var polyMethodsExceptions = PolymorphismAnalyzer(
+            emptyArray()
+        ).methodToExceptions
         fun initPolymorphismAnalyzer(pa: PolymorphismAnalyzer) {
             polyMethodsExceptions = pa.methodToExceptions
         }
@@ -38,7 +41,8 @@ class MethodAnalyzer(private val method: CtMethod) {
             return previousMethods.getValue(methodInformation)
         val catchBlocks = getAllCatchBlocks(tree)
         val blockAnalyzer = BlockAnalyzer(method)
-        val invokeAnalyzer = InvokeAnalyzer(method, blockAnalyzer)
+        val invokeAnalyzer =
+            InvokeAnalyzer(method, blockAnalyzer)
         var exceptions = mutableSetOf<String>()
         for (node in tree) {
             if (isReachable(node, catchBlocks, blockAnalyzer)) {
@@ -61,7 +65,8 @@ class MethodAnalyzer(private val method: CtMethod) {
 
     private fun isReachable(node: ControlFlow.Node,
                             catchBlocks: Set<ControlFlow.Block>,
-                            blockAnalyzer: BlockAnalyzer): Boolean =
+                            blockAnalyzer: BlockAnalyzer
+    ): Boolean =
         if (node.block() in catchBlocks)
             node.block() in blockAnalyzer.reachableCatchBlocks
         else

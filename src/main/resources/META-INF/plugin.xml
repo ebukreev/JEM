@@ -1,0 +1,21 @@
+<idea-plugin>
+    <id>org.jetbrains.research.jem</id>
+    <name>JEM</name>
+    <vendor email="bukreevdev@gmail.com" url="https://research.jetbrains.org/groups/vorpal">vorpal</vendor>
+
+    <description>scans libraries to understand what exceptions the method might throw</description>
+
+    <depends>com.intellij.modules.java</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+    </extensions>
+
+    <actions>
+        <action id="ShowExceptionsAction"
+                class="org.jetbrains.research.jem.plugin.ShowExceptionsAction"
+                text="ShowExceptionsAction" description="Show exceptions ">
+            <add-to-group group-id="EditorActions" anchor="first"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt E"/>
+        </action>
+    </actions>
+</idea-plugin>

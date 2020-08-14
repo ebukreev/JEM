@@ -1,9 +1,10 @@
-package org.jetbrains.research.jem
+package org.jetbrains.research.jem.analysis
 
 import javassist.CtMethod
 import javassist.Modifier
 import javassist.bytecode.Opcode.*
 import javassist.bytecode.analysis.ControlFlow
+import org.jetbrains.research.jem.interaction.MethodInformation
 
 internal class InvokeAnalyzer(method: CtMethod,
                               private val blockAnalyzer: BlockAnalyzer) {
@@ -25,14 +26,26 @@ internal class InvokeAnalyzer(method: CtMethod,
                         val className = constPool.getMethodrefClassName(invokedMethod)
                         val methodName = constPool.getMethodrefName(invokedMethod)
                         val methodDescriptor = constPool.getMethodrefType(invokedMethod)
-                        methods.add(MethodInformation(className, methodName, methodDescriptor))
+                        methods.add(
+                            MethodInformation(
+                                className,
+                                methodName,
+                                methodDescriptor
+                            )
+                        )
                     }
                     INVOKEINTERFACE -> {
                         val invokedMethod = iterator.u16bitAt(i + 1)
                         val interfaceName = constPool.getInterfaceMethodrefClassName(invokedMethod)
                         val methodName = constPool.getInterfaceMethodrefName(invokedMethod)
                         val methodDescriptor = constPool.getInterfaceMethodrefType(invokedMethod)
-                        methods.add(MethodInformation(interfaceName, methodName, methodDescriptor))
+                        methods.add(
+                            MethodInformation(
+                                interfaceName,
+                                methodName,
+                                methodDescriptor
+                            )
+                        )
                     }
                 }
             } catch (e: Exception) {
@@ -57,15 +70,18 @@ internal class InvokeAnalyzer(method: CtMethod,
                     `class`.getMethod(m, d)
                 if (Modifier.isNative(method.modifiers))
                     continue
-                val methodInformation = MethodInformation(method)
+                val methodInformation =
+                    MethodInformation(method)
                 if (MethodAnalyzer.polyMethodsExceptions.containsKey(methodInformation)) {
-                    exceptions.addAll(MethodAnalyzer.polyMethodsExceptions
+                    exceptions.addAll(
+                        MethodAnalyzer.polyMethodsExceptions
                             .getValue(methodInformation)
                             .filter { !blockAnalyzer.isCaught(block, it) })
                     continue
                 }
                 if (MethodAnalyzer.previousMethods.containsKey(methodInformation)) {
-                    exceptions.addAll(MethodAnalyzer.previousMethods
+                    exceptions.addAll(
+                        MethodAnalyzer.previousMethods
                             .getValue(methodInformation)
                             .filter { !blockAnalyzer.isCaught(block, it) })
                     continue

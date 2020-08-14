@@ -1,4 +1,4 @@
-package org.jetbrains.research.jem
+package org.jetbrains.research.jem.analysis
 
 import javassist.CtMethod
 import javassist.Modifier

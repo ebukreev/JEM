@@ -1,8 +1,9 @@
-package org.jetbrains.research.jem
+package org.jetbrains.research.jem.analysis
 
 import javassist.CtClass
 import javassist.CtMethod
 import javassist.NotFoundException
+import org.jetbrains.research.jem.interaction.MethodInformation
 
 class PolymorphismAnalyzer(private val classPool: Array<CtClass>) {
 

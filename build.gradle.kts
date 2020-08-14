@@ -30,6 +30,7 @@ repositories {
 dependencies {
     implementation(kotlin("stdlib"))
     testImplementation("junit", "junit", "4.12")
+    testImplementation("org.jetbrains.kotlin:kotlin-test:1.3.72")
     implementation("org.jetbrains.plugins:com.thomas.checkMate:2.1")
     implementation("org.jetbrains.plugins:JumpToUsage:2.0")
     implementation("org.javassist:javassist:3.27.0-GA")

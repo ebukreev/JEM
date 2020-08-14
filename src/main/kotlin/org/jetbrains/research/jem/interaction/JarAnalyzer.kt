@@ -1,7 +1,9 @@
-package org.jetbrains.research.jem
+package org.jetbrains.research.jem.interaction
 
 import com.google.gson.Gson
 import javassist.ClassPool
+import org.jetbrains.research.jem.analysis.MethodAnalyzer
+import org.jetbrains.research.jem.analysis.PolymorphismAnalyzer
 import java.io.FileWriter
 import java.util.*
 import java.util.jar.JarEntry
@@ -22,7 +24,9 @@ object JarAnalyzer {
         }
 
         val cc = pool.get(classes.toTypedArray())
-        MethodAnalyzer.initPolymorphismAnalyzer(PolymorphismAnalyzer(cc))
+        MethodAnalyzer.initPolymorphismAnalyzer(
+            PolymorphismAnalyzer(cc)
+        )
 
         val classesForLibEntity = mutableListOf<Class>()
         for (c in cc) {
@@ -31,7 +35,11 @@ object JarAnalyzer {
             for (m in methods) {
                 val analyser = MethodAnalyzer(m)
                 val method =
-                        Method(m.name, m.methodInfo2.descriptor, analyser.getPossibleExceptions())
+                    Method(
+                        m.name,
+                        m.methodInfo2.descriptor,
+                        analyser.getPossibleExceptions()
+                    )
                 methodsForClassEntity.add(method)
             }
             val `class` = Class(c.name, methodsForClassEntity)
