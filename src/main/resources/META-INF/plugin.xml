@@ -6,6 +6,7 @@
     <description>scans libraries to understand what exceptions the method might throw</description>
 
     <depends>com.intellij.modules.java</depends>
+    <depends>org.jetbrains.kotlin</depends>
 
     <extensions defaultExtensionNs="com.intellij">
     </extensions>

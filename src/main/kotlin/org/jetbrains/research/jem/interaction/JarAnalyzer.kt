@@ -4,6 +4,7 @@ import com.google.gson.Gson
 import javassist.ClassPool
 import org.jetbrains.research.jem.analysis.MethodAnalyzer
 import org.jetbrains.research.jem.analysis.PolymorphismAnalyzer
+import java.io.File
 import java.io.FileWriter
 import java.util.*
 import java.util.jar.JarEntry
@@ -49,6 +50,7 @@ object JarAnalyzer {
         val libName = pathToJar.substringAfterLast("/").removeSuffix(".jar")
         val lib = Library(libName, classesForLibEntity)
         val filePath = "./analyzedLibs/$libName.json"
+        File("./analyzedLibs").mkdir()
         FileWriter(filePath).use { Gson().toJson(lib, it) }
     }
 }

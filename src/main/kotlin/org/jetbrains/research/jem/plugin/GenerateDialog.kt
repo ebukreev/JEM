@@ -12,15 +12,15 @@ import javax.swing.JComponent
 import javax.swing.JList
 import javax.swing.JPanel
 
-class GenerateDialog(currentFile: PsiFile, exceptionFinder: Map<PsiCallExpression, Set<String>>)
-    : DialogWrapper(currentFile.project) {
+class GenerateDialog(currentFile: PsiFile, callToExceptions: Pair<PsiCallExpression, Set<String>>,
+                     name: String, klass: String) : DialogWrapper(currentFile.project) {
 
     private val exceptionsForm: ExceptionsForm
 
     init {
-        title = "Possible Exceptions"
-        val list: JList<String> = JBList(exceptionFinder.values.flatten())
-        exceptionsForm = ExceptionsForm(list)
+        title = "JVM Exceptions Manager"
+        val list: JList<String> = JBList(callToExceptions.second)
+        exceptionsForm = ExceptionsForm(list, name, klass)
         init()
     }
 
@@ -33,13 +33,13 @@ class GenerateDialog(currentFile: PsiFile, exceptionFinder: Map<PsiCallExpressio
     }
 }
 
-class ExceptionsForm(exceptionList: JList<String>) {
+class ExceptionsForm(exceptionList: JList<String>, name: String, klass: String) {
 
     internal val splitter: JBSplitter
 
     init {
         val decoratedExceptionList = DefaultListDecorator<String>()
-                .decorate(exceptionList, "Possible exceptions in this method:")
+                .decorate(exceptionList, "Possible exceptions in method $name from class $klass:")
         exceptionList.selectedIndex = 0
         splitter = createSplitter(decoratedExceptionList)
     }
