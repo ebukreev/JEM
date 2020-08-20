@@ -17,7 +17,7 @@ object JarAnalyzer {
         val classes = mutableListOf<String>()
         val file = JarFile(pathToJar)
         val entries: Enumeration<JarEntry> = file.entries()
-        val ps = File.pathSeparator
+        val ps = File.separator
 
         while (entries.hasMoreElements()) {
             val e: JarEntry = entries.nextElement()
@@ -32,20 +32,24 @@ object JarAnalyzer {
 
         val classesForLibEntity = mutableListOf<Class>()
         for (c in cc) {
-            val methodsForClassEntity = mutableListOf<Method>()
-            val methods = c.methods
-            for (m in methods) {
-                val analyser = MethodAnalyzer(m)
-                val method =
-                    Method(
-                        m.name,
-                        m.methodInfo2.descriptor,
-                        analyser.getPossibleExceptions()
-                    )
-                methodsForClassEntity.add(method)
+            try {
+                val methodsForClassEntity = mutableListOf<Method>()
+                val methods = c.methods
+                for (m in methods) {
+                    val analyser = MethodAnalyzer(m)
+                    val method =
+                        Method(
+                            m.name,
+                            m.methodInfo2.descriptor,
+                            analyser.getPossibleExceptions()
+                        )
+                    methodsForClassEntity.add(method)
+                }
+                val `class` = Class(c.name, methodsForClassEntity)
+                classesForLibEntity.add(`class`)
+            } catch (e: Exception) {
+                continue
             }
-            val `class` = Class(c.name, methodsForClassEntity)
-            classesForLibEntity.add(`class`)
         }
 
         val libName = pathToJar.substringAfterLast(ps).removeSuffix(".jar")

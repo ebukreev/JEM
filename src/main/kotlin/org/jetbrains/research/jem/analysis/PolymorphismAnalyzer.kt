@@ -14,8 +14,8 @@ class PolymorphismAnalyzer(private val classPool: Array<CtClass>) {
 
     private fun getHeirsForClassesAndInterfaces(): Map<CtClass, Set<CtClass>> {
         val heirs = mutableMapOf<CtClass, MutableSet<CtClass>>()
-        try {
-            for (c in classPool) {
+        for (c in classPool) {
+            try {
                 if (c.superclass != null) {
                     (heirs.getOrPut(c.superclass) { mutableSetOf() }).add(c)
                 }
@@ -24,8 +24,10 @@ class PolymorphismAnalyzer(private val classPool: Array<CtClass>) {
                         (heirs.getOrPut(`interface`) { mutableSetOf() }).add(c)
                     }
                 }
+            } catch (e: Exception) {
+                continue
             }
-        } catch (e: NotFoundException) {}
+        }
         return heirs
     }
 

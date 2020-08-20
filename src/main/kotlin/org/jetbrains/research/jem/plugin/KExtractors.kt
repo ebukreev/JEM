@@ -78,7 +78,7 @@ class KtExpressionExtractor(private val psiFile: KtFile,
     }
 }
 
-class KPsiMethodCallExpressionExtractor(psiStatementExtractor: KtExpressionExtractor) {
+class KCallElementExtractor(psiStatementExtractor: KtExpressionExtractor) {
     private val ktExpressionExtractor: KtExpressionExtractor = psiStatementExtractor
     private val scopeTracker = ScopeTracker<KtCallElement>(KtCallElement::class.java)
 
