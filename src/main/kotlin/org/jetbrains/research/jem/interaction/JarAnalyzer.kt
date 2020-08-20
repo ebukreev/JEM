@@ -17,11 +17,12 @@ object JarAnalyzer {
         val classes = mutableListOf<String>()
         val file = JarFile(pathToJar)
         val entries: Enumeration<JarEntry> = file.entries()
+        val ps = File.pathSeparator
 
         while (entries.hasMoreElements()) {
             val e: JarEntry = entries.nextElement()
             if (e.name.endsWith(".class") && !e.name.startsWith("META-INF"))
-                classes.add(e.name.replace("/", ".").removeSuffix(".class"))
+                classes.add(e.name.replace(ps, ".").removeSuffix(".class"))
         }
 
         val cc = pool.get(classes.toTypedArray())
@@ -47,10 +48,10 @@ object JarAnalyzer {
             classesForLibEntity.add(`class`)
         }
 
-        val libName = pathToJar.substringAfterLast("/").removeSuffix(".jar")
+        val libName = pathToJar.substringAfterLast(ps).removeSuffix(".jar")
         val lib = Library(libName, classesForLibEntity)
-        val filePath = "./analyzedLibs/$libName.json"
-        File("./analyzedLibs").mkdir()
+        val filePath = ".${ps}analyzedLibs$ps$libName.json"
+        File(".${ps}analyzedLibs").mkdir()
         FileWriter(filePath).use { Gson().toJson(lib, it) }
     }
 }

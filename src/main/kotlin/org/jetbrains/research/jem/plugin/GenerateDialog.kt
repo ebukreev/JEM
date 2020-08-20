@@ -7,6 +7,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiType
 import com.intellij.ui.JBSplitter
+import com.intellij.ui.components.JBList
 import com.thomas.checkMate.discovery.general.Discovery
 import com.thomas.checkMate.presentation.exception_form.DefaultListDecorator
 import com.thomas.checkMate.presentation.exception_form.ExceptionIndicatorCellRenderer
@@ -34,35 +35,36 @@ class GenerateDialog(discoveredExceptionMap: Map<PsiType, Set<Discovery>>, curre
     }
 
     override fun createCenterPanel(): JComponent? {
-        return exceptionsForm.getSplitter()
+        return exceptionsForm.splitter
     }
 }
 
-class JemExceptionsForm(discoveredExceptionMap: Map<PsiType, Set<Discovery>>,
+class JemExceptionsForm(private var discoveredExceptionMap: Map<PsiType, Set<Discovery>>,
                         private val currentFile: PsiFile) {
 
     private var exceptionList: JList<PsiType>
     private var methodList: JList<Discovery>
-    private var exceptionMap: Map<PsiType, Set<Discovery>> = discoveredExceptionMap
-    private var splitter: JBSplitter
+    internal var splitter: JBSplitter
     private var currentActive: PsiElement
 
     init {
         currentActive = currentFile
         exceptionList = createExceptionList(discoveredExceptionMap.keys)
         methodList = createMethodList()
-        val decoratedExceptionList = DefaultListDecorator<PsiType>().decorate(exceptionList, "Possible exceptions")
-        val decoratedMethodList = DefaultListDecorator<Discovery>().decorate(methodList, "Inspect methods that throw this exception")
+        val decoratedExceptionList = DefaultListDecorator<PsiType>()
+                .decorate(exceptionList, "Possible exceptions")
+        val decoratedMethodList = DefaultListDecorator<Discovery>()
+                .decorate(methodList, "Inspect methods that throw this exception")
         exceptionList.selectedIndex = 0
         splitter = createSplitter(decoratedExceptionList, decoratedMethodList)
     }
 
     private fun createExceptionList(exceptionTypes: Set<PsiType>): JList<PsiType> {
-        val exceptionList = JList<PsiType>()
+        val exceptionList = JBList<PsiType>()
         val listModel = DefaultListModel<PsiType>()
-        exceptionTypes.stream().sorted { e1: PsiType, e2: PsiType -> e1.canonicalText.compareTo(e2.canonicalText) }.forEach { element: PsiType -> listModel.addElement(element) }
+        listModel.addAll(exceptionTypes)
         exceptionList.model = listModel
-        exceptionList.addListSelectionListener { e: ListSelectionEvent? ->
+        exceptionList.addListSelectionListener {
             populateMethodListForSelectedExceptionWithIndex(exceptionList.leadSelectionIndex)
             activateIfNecessary(currentFile)
         }
@@ -71,7 +73,7 @@ class JemExceptionsForm(discoveredExceptionMap: Map<PsiType, Set<Discovery>>,
     }
 
     private fun createMethodList(): JList<Discovery> {
-        val methodList = JList<Discovery>()
+        val methodList = JBList<Discovery>()
         methodList.cellRenderer = ExceptionIndicatorCellRenderer()
         return methodList
     }
@@ -88,7 +90,7 @@ class JemExceptionsForm(discoveredExceptionMap: Map<PsiType, Set<Discovery>>,
         if (index >= 0) {
             val psiType = exceptionList.model.getElementAt(index)
             val methodListModel = DefaultListModel<Discovery>()
-            exceptionMap[psiType]!!.forEach(Consumer { element: Discovery -> methodListModel.addElement(element) })
+            methodListModel.addAll(discoveredExceptionMap[psiType])
             methodList.model = methodListModel
             methodList.addMouseListener(object : MouseAdapter() {
                 override fun mouseClicked(e: MouseEvent) {
@@ -103,10 +105,6 @@ class JemExceptionsForm(discoveredExceptionMap: Map<PsiType, Set<Discovery>>,
                 }
             })
         }
-    }
-
-    fun getSplitter(): JBSplitter? {
-        return splitter
     }
 
     private fun activateIfNecessary(element: PsiElement?) {

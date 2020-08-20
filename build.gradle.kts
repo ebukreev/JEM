@@ -30,7 +30,6 @@ dependencies {
     implementation(kotlin("stdlib"))
     testImplementation("junit", "junit", "4.12")
     testImplementation("org.jetbrains.kotlin:kotlin-test:1.4.0")
-    compileOnly("org.jetbrains.kotlin:kotlin-compiler-embeddable:1.4.0")
     implementation("org.jetbrains.plugins:com.thomas.checkMate:2.1")
     implementation("org.javassist:javassist:3.27.0-GA")
     implementation("com.google.code.gson:gson:2.8.6")
@@ -38,7 +37,7 @@ dependencies {
 
 intellij {
     version = "2020.2"
-    setPlugins("java", "Kotlin")
+    setPlugins("java", "org.jetbrains.kotlin")
 }
 
 tasks.getByName<org.jetbrains.intellij.tasks.PatchPluginXmlTask>("patchPluginXml") {

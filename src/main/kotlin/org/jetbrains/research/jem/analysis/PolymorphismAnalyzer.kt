@@ -1,5 +1,6 @@
 package org.jetbrains.research.jem.analysis
 
+import javassist.ClassPool
 import javassist.CtClass
 import javassist.CtMethod
 import javassist.NotFoundException
