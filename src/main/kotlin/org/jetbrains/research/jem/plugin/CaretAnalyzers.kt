@@ -20,6 +20,7 @@ import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameSafe
 import org.jetbrains.kotlin.resolve.source.getPsi
 import org.jetbrains.kotlinx.serialization.compiler.resolve.toClassDescriptor
 import org.jetbrains.research.jem.interaction.InfoReader
+import org.jetbrains.research.jem.interaction.JarAnalyzer
 import org.jetbrains.research.jem.plugin.JavaCaretAnalyzer.getJarPath
 import org.jetbrains.research.jem.plugin.KotlinCaretAnalyzer.getJarPath
 import org.jetbrains.research.jem.plugin.KotlinCaretAnalyzer.toJsonPath
@@ -167,6 +168,9 @@ private fun <T> getExceptionsFor(method: T, isKotlin: Boolean): Set<String> {
         descriptor = JavaCaretAnalyzer.descriptorFor(m)
     }
     val jsonPath = jarPath.toJsonPath()
+    if (!File(jsonPath).exists()) {
+        JarAnalyzer.analyze(jarPath)
+    }
     val lib = InfoReader.read(jsonPath)
     return lib.classes
             .find { it.className == `class` }
