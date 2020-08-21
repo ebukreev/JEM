@@ -31,8 +31,12 @@ interface CaretAnalyzer {
     val hintManager: HintManager
         get() = HintManager.getInstance()
 
-    fun analyze(psiFile: PsiFile, caret: Caret)
+    fun analyze(psiFile: PsiFile, editor: Editor, startOffset: Int, endOffset: Int)
             : Map<PsiType, Set<Discovery>>?
+
+    fun analyze(psiFile: PsiFile, caret: Caret)
+            : Map<PsiType, Set<Discovery>>? =
+        analyze(psiFile, caret.editor, caret.selectionStart, caret.selectionEnd)
 
     fun String.toJsonPath(): String =
             ".${File.separator}analyzedLibs${File.separator}${this
@@ -56,10 +60,9 @@ interface CaretAnalyzer {
 }
 
 object JavaCaretAnalyzer: CaretAnalyzer {
-    override fun analyze(psiFile: PsiFile, caret: Caret): Map<PsiType, Set<Discovery>>? {
-        val statementExtractor = PsiStatementExtractor(psiFile, caret.selectionStart, caret.selectionEnd)
+    override fun analyze(psiFile: PsiFile, editor: Editor, startOffset: Int, endOffset: Int): Map<PsiType, Set<Discovery>>? {
+        val statementExtractor = PsiStatementExtractor(psiFile, startOffset, endOffset)
         val methodCallExpressionExtractor = PsiMethodCallExpressionExtractor(statementExtractor)
-        val editor = caret.editor
         val psiMethodCalls =
             tryExtract(editor) { methodCallExpressionExtractor.extract() } ?: return null
         return getDiscoveredExceptionsMap(psiMethodCalls, editor.project ?: return null)
@@ -101,12 +104,11 @@ object JavaCaretAnalyzer: CaretAnalyzer {
 }
 
 object KotlinCaretAnalyzer: CaretAnalyzer {
-    override fun analyze(psiFile: PsiFile, caret: Caret): Map<PsiType, Set<Discovery>>? {
+    override fun analyze(psiFile: PsiFile, editor: Editor, startOffset: Int, endOffset: Int): Map<PsiType, Set<Discovery>>? {
         val kStatementExtractor  = KtExpressionExtractor(
                 psiFile as KtFile,
-                caret.selectionStart, caret.selectionEnd)
+                startOffset, endOffset)
         val kCallExtractor = KCallElementExtractor(kStatementExtractor)
-        val editor = caret.editor
         val psiMethodCalls =
                 tryExtract(editor) { kCallExtractor.extract() } ?: return null
         return getDiscoveredExceptionsMap(psiMethodCalls, editor.project ?: return null)

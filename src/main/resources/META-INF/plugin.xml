@@ -9,6 +9,13 @@
     <depends>org.jetbrains.kotlin</depends>
 
     <extensions defaultExtensionNs="com.intellij">
+        <localInspection
+                language="JAVA"
+                displayName="Some possibles exceptions in this try block:"
+                level="INFO"
+                implementationClass="org.jetbrains.research.jem.plugin.JPossibleExceptionsInspection"
+                groupName="JEM">
+        </localInspection>
     </extensions>
 
     <actions>
