@@ -22,7 +22,7 @@ object JarAnalyzer {
         while (entries.hasMoreElements()) {
             val e: JarEntry = entries.nextElement()
             if (e.name.endsWith(".class") && !e.name.startsWith("META-INF"))
-                classes.add(e.name.replace(ps, ".").removeSuffix(".class"))
+                classes.add(e.name.replace("/", ".").removeSuffix(".class"))
         }
 
         val cc = pool.get(classes.toTypedArray())
@@ -52,7 +52,7 @@ object JarAnalyzer {
             }
         }
 
-        val libName = pathToJar.substringAfterLast(ps).removeSuffix(".jar")
+        val libName = pathToJar.substringAfterLast("/").removeSuffix(".jar")
         val lib = Library(libName, classesForLibEntity)
         val filePath = ".${ps}analyzedLibs$ps$libName.json"
         File(".${ps}analyzedLibs").mkdir()

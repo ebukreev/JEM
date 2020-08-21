@@ -36,7 +36,7 @@ interface CaretAnalyzer {
 
     fun String.toJsonPath(): String =
             ".${File.separator}analyzedLibs${File.separator}${this
-                    .substringAfterLast(File.separator)
+                    .substringAfterLast("/")
                     .removeSuffix(".jar")}.json"
 
     fun <T> tryExtract(editor: Editor, method: () -> Set<T>): Set<T>? {
@@ -156,6 +156,7 @@ private fun <T> getExceptionsFor(method: T, isKotlin: Boolean): Set<String> {
     val descriptor: String
     if (isKotlin) {
         val m = method as CallableDescriptor
+        println(m.findPsi()!!.containingFile.virtualFile.toString())
         jarPath = m.getJarPath()
         name = m.name.toString()
         `class` = m.containingDeclaration.fqNameSafe.toString()
