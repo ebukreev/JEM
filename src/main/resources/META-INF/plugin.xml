@@ -3,12 +3,12 @@
     <name>JEM</name>
     <vendor email="bukreevdev@gmail.com" url="https://research.jetbrains.org/groups/vorpal">vorpal</vendor>
 
-    <description>![CDATA[
+    <description>
         This plugin scans JVM libraries to understand what exceptions the method might throw.
         You need to select the lines with the method calls you want to check and press ctrl + alt + e,
         then you will see a window with possible exceptions and method calls, that raise it.
         In addition, the plugin will show you what exceptions can be thrown inside a try block, other than those caught in catch blocks.
-        Currently, analysis is possible for Java and Kotlin languages.]]
+        Currently, analysis is possible for Java and Kotlin languages.
     </description>
 
     <depends>com.intellij.modules.java</depends>
