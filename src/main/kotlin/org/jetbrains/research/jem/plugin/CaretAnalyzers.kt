@@ -38,7 +38,7 @@ interface CaretAnalyzer {
             : Set<String>
 
     fun String.toJsonPath(): String =
-            ".${File.separator}analyzedLibs${File.separator}${this
+            "${System.getProperty("user.home")}/JEMPluginСache/${this
                     .substringAfterLast("/")
                     .removeSuffix(".jar")}.json"
 

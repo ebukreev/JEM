@@ -6,9 +6,14 @@ import org.jetbrains.research.jem.analysis.MethodAnalyzer
 import org.jetbrains.research.jem.analysis.PolymorphismAnalyzer
 import java.io.File
 import java.io.FileWriter
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.nio.file.Path
 import java.util.*
 import java.util.jar.JarEntry
 import java.util.jar.JarFile
+import java.nio.file.attribute.PosixFilePermission
+import java.nio.file.attribute.PosixFilePermissions
 
 object JarAnalyzer {
     fun analyze(pathToJar: String) {
@@ -54,8 +59,8 @@ object JarAnalyzer {
 
         val libName = pathToJar.substringAfterLast("/").removeSuffix(".jar")
         val lib = Library(libName, classesForLibEntity)
-        val filePath = ".${ps}analyzedLibs$ps$libName.json"
-        File(".${ps}analyzedLibs").mkdir()
+        val filePath = "${System.getProperty("user.home")}/JEMPluginСache/$libName.json"
+        File("${System.getProperty("user.home")}/JEMPluginСache").mkdir()
         FileWriter(filePath).use { Gson().toJson(lib, it) }
     }
 }
