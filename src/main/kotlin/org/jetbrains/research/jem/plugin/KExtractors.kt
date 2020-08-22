@@ -70,7 +70,7 @@ class KtExpressionExtractor(private val psiFile: KtFile,
         return selectedStatements
     }
 
-    private fun addToStatements(psiStatement :KtExpression?, selectedStatements: MutableList<KtExpression>) {
+    private fun addToStatements(psiStatement: KtExpression?, selectedStatements: MutableList<KtExpression>) {
         if (psiStatement != null && !selectedStatements.contains(psiStatement) && !scopeTracker.foundInScopes(psiStatement, selectedStatements)) {
             selectedStatements.add(psiStatement)
             scopeTracker.removeSmallerScopes(psiStatement, selectedStatements)

@@ -15,9 +15,7 @@ import com.thomas.checkMate.presentation.exception_form.PsiTypeCellRenderer
 import java.awt.event.InputEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
-import java.util.function.Consumer
 import javax.swing.*
-import javax.swing.event.ListSelectionEvent
 
 class GenerateDialog(discoveredExceptionMap: Map<PsiType, Set<Discovery>>, currentFile: PsiFile)
                      : DialogWrapper(currentFile.project) {
