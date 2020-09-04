@@ -31,6 +31,12 @@
                 groupName="JEM"
                 enabledByDefault="true">
         </localInspection>
+        <globalInspection
+                language="JVM"
+                displayName="PossibleExceptionsGlobalInspection"
+                groupName="JEM"
+                level="INFO"
+                implementationClass="org.jetbrains.research.jem.plugin.PossibleExceptionsGlobalInspection"/>
     </extensions>
 
     <actions>

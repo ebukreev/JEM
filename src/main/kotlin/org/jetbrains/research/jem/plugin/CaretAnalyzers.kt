@@ -34,7 +34,7 @@ interface CaretAnalyzer {
     fun analyze(psiFile: PsiFile, caret: Caret)
             : Map<PsiType, Set<Discovery>>?
 
-    fun analyzeForInspection(psiFile: PsiFile, editor: Editor, startOffset: Int, endOffset: Int)
+    fun analyzeForInspection(psiFile: PsiFile, project: Project, startOffset: Int, endOffset: Int)
             : Set<String>
 
     fun String.toJsonPath(): String =
@@ -69,7 +69,7 @@ object JavaCaretAnalyzer: CaretAnalyzer {
         return getDiscoveredExceptionsMap(psiMethodCalls, editor.project ?: return null)
     }
 
-    override fun analyzeForInspection(psiFile: PsiFile, editor: Editor, startOffset: Int, endOffset: Int): Set<String> {
+    override fun analyzeForInspection(psiFile: PsiFile, project: Project, startOffset: Int, endOffset: Int): Set<String> {
         val statementExtractor = PsiStatementExtractor(psiFile, startOffset, endOffset)
         val methodCallExpressionExtractor = PsiMethodCallExpressionExtractor(statementExtractor)
         val psiMethodCalls = try {
@@ -77,7 +77,7 @@ object JavaCaretAnalyzer: CaretAnalyzer {
         } catch (e: MultipleMethodException) {
             return emptySet()
         }
-        return getDiscoveredExceptionsMap(psiMethodCalls, editor.project ?: return emptySet())
+        return getDiscoveredExceptionsMap(psiMethodCalls, project)
                 .keys.map { it.canonicalText }.toSet()
     }
 
@@ -129,7 +129,7 @@ object KotlinCaretAnalyzer: CaretAnalyzer {
         return getDiscoveredExceptionsMap(psiMethodCalls, editor.project ?: return null)
     }
 
-    override fun analyzeForInspection(psiFile: PsiFile, editor: Editor, startOffset: Int, endOffset: Int): Set<String> {
+    override fun analyzeForInspection(psiFile: PsiFile, project: Project, startOffset: Int, endOffset: Int): Set<String> {
         val kStatementExtractor  = KtExpressionExtractor(
                 psiFile as KtFile,
                 startOffset, endOffset)
@@ -139,7 +139,7 @@ object KotlinCaretAnalyzer: CaretAnalyzer {
         } catch (e: MultipleMethodException) {
             return emptySet()
         }
-        return getDiscoveredExceptionsMap(psiMethodCalls, editor.project ?: return emptySet())
+        return getDiscoveredExceptionsMap(psiMethodCalls, project)
                 .keys.map { it.canonicalText }.toSet()
     }
 

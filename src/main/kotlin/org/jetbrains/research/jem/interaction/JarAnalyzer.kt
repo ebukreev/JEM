@@ -6,14 +6,9 @@ import org.jetbrains.research.jem.analysis.MethodAnalyzer
 import org.jetbrains.research.jem.analysis.PolymorphismAnalyzer
 import java.io.File
 import java.io.FileWriter
-import java.nio.file.Files
-import java.nio.file.Paths
-import java.nio.file.Path
 import java.util.*
 import java.util.jar.JarEntry
 import java.util.jar.JarFile
-import java.nio.file.attribute.PosixFilePermission
-import java.nio.file.attribute.PosixFilePermissions
 
 object JarAnalyzer {
     fun analyze(pathToJar: String) {
@@ -22,7 +17,6 @@ object JarAnalyzer {
         val classes = mutableListOf<String>()
         val file = JarFile(pathToJar)
         val entries: Enumeration<JarEntry> = file.entries()
-        val ps = File.separator
 
         while (entries.hasMoreElements()) {
             val e: JarEntry = entries.nextElement()
