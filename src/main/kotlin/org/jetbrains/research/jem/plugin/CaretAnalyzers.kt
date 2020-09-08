@@ -1,14 +1,9 @@
 package org.jetbrains.research.jem.plugin
 
-import com.intellij.codeInsight.hint.HintManager
 import com.intellij.openapi.editor.Caret
-import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.*
 import com.thomas.checkMate.discovery.general.Discovery
-import com.thomas.checkMate.editing.MultipleMethodException
-import com.thomas.checkMate.editing.PsiMethodCallExpressionExtractor
-import com.thomas.checkMate.editing.PsiStatementExtractor
 import javassist.bytecode.Descriptor
 import org.jetbrains.kotlin.descriptors.CallableDescriptor
 import org.jetbrains.kotlin.idea.caches.resolve.analyze
@@ -28,9 +23,6 @@ import java.io.File
 
 interface CaretAnalyzer {
 
-    val hintManager: HintManager
-        get() = HintManager.getInstance()
-
     fun analyze(psiFile: PsiFile, caret: Caret)
             : Map<PsiType, Set<Discovery>>?
 
@@ -41,43 +33,17 @@ interface CaretAnalyzer {
             "${System.getProperty("user.home")}/JEMPluginСache/${this
                     .substringAfterLast("/")
                     .removeSuffix(".jar")}.json"
-
-    fun <T> tryExtract(editor: Editor, method: () -> Set<T>): Set<T>? {
-        val result: Set<T>
-        try {
-            result = method.invoke()
-        } catch (mme: MultipleMethodException) {
-            hintManager.showErrorHint(editor, "Please keep your selection within one method")
-            return null
-        }
-        if (result.isEmpty()) {
-            hintManager.showErrorHint(editor, "No expressions found in current selection")
-            return null
-        }
-        return result
-    }
 }
 
 object JavaCaretAnalyzer: CaretAnalyzer {
 
     override fun analyze(psiFile: PsiFile, caret: Caret): Map<PsiType, Set<Discovery>>? {
-        val statementExtractor = PsiStatementExtractor(psiFile, caret.selectionStart, caret.selectionEnd)
-        val methodCallExpressionExtractor = PsiMethodCallExpressionExtractor(statementExtractor)
         val editor = caret.editor
-        val psiMethodCalls =
-            tryExtract(editor) { methodCallExpressionExtractor.extract() } ?: return null
-        return getDiscoveredExceptionsMap(psiMethodCalls, editor.project ?: return null)
+        return getDiscoveredExceptionsMap(JCallExtractor(psiFile, caret.selectionStart, caret.selectionEnd).extract(), editor.project ?: return null)
     }
 
     override fun analyzeForInspection(psiFile: PsiFile, project: Project, startOffset: Int, endOffset: Int): Set<String> {
-        val statementExtractor = PsiStatementExtractor(psiFile, startOffset, endOffset)
-        val methodCallExpressionExtractor = PsiMethodCallExpressionExtractor(statementExtractor)
-        val psiMethodCalls = try {
-            methodCallExpressionExtractor.extract()
-        } catch (e: MultipleMethodException) {
-            return emptySet()
-        }
-        return getDiscoveredExceptionsMap(psiMethodCalls, project)
+        return getDiscoveredExceptionsMap(JCallExtractor(psiFile, startOffset, endOffset).extract(), project)
                 .keys.map { it.canonicalText }.toSet()
     }
 
@@ -88,10 +54,10 @@ object JavaCaretAnalyzer: CaretAnalyzer {
                     append(Descriptor.of(it.type.canonicalText))
                 }
                 append(")")
-                append(Descriptor.of(method.returnType?.canonicalText))
+                append(Descriptor.of(method.returnType?.canonicalText) ?: "")
             }
 
-    private fun getDiscoveredExceptionsMap(psiMethodCalls: Set<PsiCallExpression>, project: Project)
+    private fun getDiscoveredExceptionsMap(psiMethodCalls: Set<PsiCall>, project: Project)
             : Map<PsiType, Set<Discovery>> {
         val result = mutableMapOf<PsiType, MutableSet<Discovery>>()
         for (call in psiMethodCalls) {
@@ -119,27 +85,12 @@ object JavaCaretAnalyzer: CaretAnalyzer {
 object KotlinCaretAnalyzer: CaretAnalyzer {
 
     override fun analyze(psiFile: PsiFile, caret: Caret): Map<PsiType, Set<Discovery>>? {
-        val kStatementExtractor  = KtExpressionExtractor(
-                psiFile as KtFile,
-                caret.selectionStart, caret.selectionEnd)
-        val kCallExtractor = KCallElementExtractor(kStatementExtractor)
         val editor = caret.editor
-        val psiMethodCalls =
-                tryExtract(editor) { kCallExtractor.extract() } ?: return null
-        return getDiscoveredExceptionsMap(psiMethodCalls, editor.project ?: return null)
+        return getDiscoveredExceptionsMap(KCallExtractor(psiFile as KtFile, caret.selectionStart, caret.selectionEnd).extract(), editor.project ?: return null)
     }
 
     override fun analyzeForInspection(psiFile: PsiFile, project: Project, startOffset: Int, endOffset: Int): Set<String> {
-        val kStatementExtractor  = KtExpressionExtractor(
-                psiFile as KtFile,
-                startOffset, endOffset)
-        val kCallExtractor = KCallElementExtractor(kStatementExtractor)
-        val psiMethodCalls = try {
-            kCallExtractor.extract()
-        } catch (e: MultipleMethodException) {
-            return emptySet()
-        }
-        return getDiscoveredExceptionsMap(psiMethodCalls, project)
+        return getDiscoveredExceptionsMap(KCallExtractor(psiFile as KtFile, startOffset, endOffset).extract(), project)
                 .keys.map { it.canonicalText }.toSet()
     }
 
@@ -170,10 +121,10 @@ object KotlinCaretAnalyzer: CaretAnalyzer {
             buildString {
                 append("(")
                 method.valueParameters.forEach {
-                    append(Descriptor.of(it.source.getPsi()?.text?.replace(" classname", "")))
+                    append(Descriptor.of(it.source.getPsi()?.text?.replace(" classname", "")) ?: "")
                 }
                 append(")")
-                append(Descriptor.of(method.returnType.toClassDescriptor?.fqNameSafe.toString()))
+                append(Descriptor.of(method.returnType.toClassDescriptor?.fqNameSafe.toString()) ?: "")
             }
 }
 
