@@ -11,18 +11,13 @@ class KCallExtractor(private val psiFile: PsiFile,
                      private val endOffset: Int) {
 
     fun extract(): Set<KtCallElement> {
-        var selectedStatements = mutableSetOf<KtExpression>()
+        val selectedStatements = mutableSetOf<KtExpression>()
         for (i in startOffset..endOffset) {
             val psiElement = psiFile.findElementAt(i)
             if (psiElement != null) {
-                val parent = psiElement.parent
-                if (parent != null && parent is KtFunction) {
-                    selectedStatements = parent.getChildrenOfType<KtExpression>().toMutableSet()
-                } else {
-                    val psiStatement = psiElement.getParentOfType<KtExpression>(false)
-                    if (psiStatement != null && !selectedStatements.contains(psiStatement)) {
-                        selectedStatements.add(psiStatement)
-                    }
+                val psiStatement = psiElement.getParentOfType<KtExpression>(false)
+                if (psiStatement != null && !selectedStatements.contains(psiStatement)) {
+                    selectedStatements.add(psiStatement)
                 }
             }
         }
@@ -38,18 +33,13 @@ class JCallExtractor(private val psiFile: PsiFile,
                      private val endOffset: Int) {
 
     fun extract(): Set<PsiCall> {
-        var selectedStatements = mutableSetOf<PsiStatement>()
+        val selectedStatements = mutableSetOf<PsiStatement>()
         for (i in startOffset..endOffset) {
             val psiElement = psiFile.findElementAt(i)
             if (psiElement != null) {
-                val parent = psiElement.parent
-                if (parent != null && parent is PsiMethod) {
-                    selectedStatements = parent.getChildrenOfType<PsiStatement>().toMutableSet()
-                } else {
-                    val psiStatement = psiElement.getParentOfType<PsiStatement>(false)
-                    if (psiStatement != null && !selectedStatements.contains(psiStatement)) {
-                        selectedStatements.add(psiStatement)
-                    }
+                val psiStatement = psiElement.getParentOfType<PsiStatement>(false)
+                if (psiStatement != null && !selectedStatements.contains(psiStatement)) {
+                    selectedStatements.add(psiStatement)
                 }
             }
         }

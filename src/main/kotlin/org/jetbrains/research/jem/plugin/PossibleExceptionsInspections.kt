@@ -26,12 +26,23 @@ class JPossibleExceptionsInspection : AbstractBaseJavaLocalInspectionTool() {
                 val end = statement.tryBlock?.endOffset ?: return
                 val exceptions =
                     JavaCaretAnalyzer.analyzeForInspection(statement.containingFile, statement.project, start, end)
+                            .toMutableSet()
                 val caught = statement.catchSections.map { it.catchType!!.canonicalText }
-                val possible = exceptions.minus(caught)
-                if (possible.isNotEmpty()) {
+                caught.forEach { c ->
+                    val forRemove = mutableListOf<String>()
+                    exceptions.forEach { e ->
+                        if (PsiType.getTypeByName(c, statement.project, statement.resolveScope)
+                                        .isAssignableFrom(PsiType
+                                                .getTypeByName(e, statement.project, statement.resolveScope))) {
+                                            forRemove.add(e)
+                                        }
+                    }
+                    exceptions.removeAll(forRemove)
+                }
+                if (exceptions.isNotEmpty()) {
                     holder.registerProblem(statement,
                             "Can also be thrown by this code block:$ls" +
-                                    possible.joinToString(ls) { it }
+                                    exceptions.joinToString(ls) { it }
                     )
                 }
             }
@@ -50,14 +61,25 @@ class KPossibleExceptionsInspection : AbstractKotlinInspection() {
                 val end = expression.tryBlock.endOffset
                 val exceptions =
                         KotlinCaretAnalyzer.analyzeForInspection(expression.containingFile, expression.project, start, end)
+                                .toMutableSet()
                 val caught = expression.catchClauses.mapNotNull {
                     it.catchParameter?.type().toClassDescriptor?.fqNameSafe?.asString()
                 }
-                val possible = exceptions.minus(caught)
-                if (possible.isNotEmpty()) {
+                caught.forEach { c ->
+                    val forRemove = mutableListOf<String>()
+                    exceptions.forEach { e ->
+                        if (PsiType.getTypeByName(c, expression.project, expression.resolveScope)
+                                        .isAssignableFrom(PsiType
+                                                .getTypeByName(e, expression.project, expression.resolveScope))) {
+                            forRemove.add(e)
+                        }
+                    }
+                    exceptions.removeAll(forRemove)
+                }
+                if (exceptions.isNotEmpty()) {
                     holder.registerProblem(expression,
                             "Can also be thrown by this code block:$ls" +
-                                    possible.joinToString(ls) { it }
+                                    exceptions.joinToString(ls) { it }
                     )
                 }
             }
