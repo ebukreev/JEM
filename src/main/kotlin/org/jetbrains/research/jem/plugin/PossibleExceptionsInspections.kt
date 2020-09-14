@@ -3,7 +3,6 @@ package org.jetbrains.research.jem.plugin
 import com.intellij.codeInspection.*
 import com.intellij.lang.java.JavaLanguage
 import com.intellij.psi.*
-import org.jetbrains.annotations.NotNull
 import org.jetbrains.kotlin.idea.KotlinLanguage
 import org.jetbrains.kotlin.idea.inspections.AbstractKotlinInspection
 import org.jetbrains.kotlin.nj2k.postProcessing.type
@@ -17,7 +16,7 @@ private val ls = System.lineSeparator()
 
 class JPossibleExceptionsInspection : AbstractBaseJavaLocalInspectionTool() {
 
-    override fun buildVisitor(@NotNull holder: ProblemsHolder, isOnTheFly: Boolean): JavaElementVisitor {
+    override fun buildVisitor(holder: ProblemsHolder, isOnTheFly: Boolean): JavaElementVisitor {
         return object : JavaElementVisitor() {
 
             override fun visitTryStatement(statement: PsiTryStatement) {
@@ -28,17 +27,7 @@ class JPossibleExceptionsInspection : AbstractBaseJavaLocalInspectionTool() {
                     JavaCaretAnalyzer.analyzeForInspection(statement.containingFile, statement.project, start, end)
                             .toMutableSet()
                 val caught = statement.catchSections.map { it.catchType!!.canonicalText }
-                caught.forEach { c ->
-                    val forRemove = mutableListOf<String>()
-                    exceptions.forEach { e ->
-                        if (PsiType.getTypeByName(c, statement.project, statement.resolveScope)
-                                        .isAssignableFrom(PsiType
-                                                .getTypeByName(e, statement.project, statement.resolveScope))) {
-                                            forRemove.add(e)
-                                        }
-                    }
-                    exceptions.removeAll(forRemove)
-                }
+                exceptions.removeCaught(caught, statement)
                 if (exceptions.isNotEmpty()) {
                     holder.registerProblem(statement,
                             "Can also be thrown by this code block:$ls" +
@@ -65,17 +54,7 @@ class KPossibleExceptionsInspection : AbstractKotlinInspection() {
                 val caught = expression.catchClauses.mapNotNull {
                     it.catchParameter?.type().toClassDescriptor?.fqNameSafe?.asString()
                 }
-                caught.forEach { c ->
-                    val forRemove = mutableListOf<String>()
-                    exceptions.forEach { e ->
-                        if (PsiType.getTypeByName(c, expression.project, expression.resolveScope)
-                                        .isAssignableFrom(PsiType
-                                                .getTypeByName(e, expression.project, expression.resolveScope))) {
-                            forRemove.add(e)
-                        }
-                    }
-                    exceptions.removeAll(forRemove)
-                }
+                exceptions.removeCaught(caught, expression)
                 if (exceptions.isNotEmpty()) {
                     holder.registerProblem(expression,
                             "Can also be thrown by this code block:$ls" +
@@ -84,6 +63,20 @@ class KPossibleExceptionsInspection : AbstractKotlinInspection() {
                 }
             }
         }
+    }
+}
+
+private fun MutableSet<String>.removeCaught(caught: List<String>, expression: PsiElement) {
+    caught.forEach { c ->
+        val forRemove = mutableListOf<String>()
+        this.forEach { e ->
+            if (PsiType.getTypeByName(c, expression.project, expression.resolveScope)
+                    .isAssignableFrom(PsiType
+                        .getTypeByName(e, expression.project, expression.resolveScope))) {
+                forRemove.add(e)
+            }
+        }
+        this.removeAll(forRemove)
     }
 }
 
