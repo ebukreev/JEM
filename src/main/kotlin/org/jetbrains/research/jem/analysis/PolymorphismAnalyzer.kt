@@ -1,10 +1,17 @@
 package org.jetbrains.research.jem.analysis
 
+import com.jetbrains.rd.framework.base.deepClonePolymorphic
+import javassist.ClassPool
 import javassist.CtClass
 import javassist.CtMethod
+import javassist.bytecode.Descriptor
 import org.jetbrains.research.jem.interaction.MethodInformation
 
 class PolymorphismAnalyzer(private val classPool: Array<CtClass>) {
+
+    // TODO: Consider possible additions to "heirs"
+    //       from classes in other jars from our closed world
+    //       (maybe run the analysis over fat or uber jar?)
 
     private val heirs = getHeirsForClassesAndInterfaces()
     private val methodToOverriders = getOverriddenMethods()
@@ -31,19 +38,20 @@ class PolymorphismAnalyzer(private val classPool: Array<CtClass>) {
 
     private fun getOverriddenMethods(): Map<MethodInformation, Set<CtMethod>> {
         val methodToOverriders = mutableMapOf<MethodInformation, MutableSet<CtMethod>>()
-        for ((`class`, subclasses) in heirs) {
-            `class`.methods.forEach { m ->
+        for ((clazz, subclasses) in heirs) {
+            clazz.methods.forEach { m ->
                 val methodInformation = MethodInformation(m)
                 subclasses.forEach { sc ->
                     (methodToOverriders.getOrPut(methodInformation) { mutableSetOf() })
                             .addAll(sc.methods.filter {
-                                it.name == m.name &&
-                                        it.methodInfo2.descriptor == m.methodInfo2.descriptor
+                               it.name == m.name &&
+                                       !it.isEmpty &&
+                                       Descriptor.eqParamTypes(m.signature, it.signature) &&
+                                        it.returnType.subtypeOf(m.returnType)
                             })
                 }
-                if (methodToOverriders.getValue(methodInformation).isEmpty()) {
-                    methodToOverriders[methodInformation] = mutableSetOf(m)
-                }
+                if (!m.isEmpty || methodToOverriders.getValue(methodInformation).isEmpty())
+                    methodToOverriders.getValue(methodInformation).add(m)
             }
         }
         return methodToOverriders

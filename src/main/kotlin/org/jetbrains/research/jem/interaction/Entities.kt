@@ -19,9 +19,9 @@ data class Method(
 )
 
 data class MethodInformation(
-        val `class`: String?,
+        val clazz: String?,
         val name: String,
         val descriptor: String
 ) {
-    constructor(method: CtMethod): this(method.declaringClass.name, method.name, method.name)
+    constructor(method: CtMethod): this(method.declaringClass.name, method.name, method.methodInfo2.descriptor)
 }

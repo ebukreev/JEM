@@ -29,12 +29,12 @@ class Tests {
             println(i)
             assertEquals(ma.getPossibleExceptions(), exceptions[i - 1])
         }
-        val kclass = pool.get("KotlinTryCatchFinallyTest")
-        for (i in 1..7) {
-            val method = kclass.getDeclaredMethod("test$i")
-            val ma = MethodAnalyzer(method)
-            println(i)
-            assertEquals(ma.getPossibleExceptions(), exceptions[i - 1])
-        }
+//        val kclass = pool.get("KotlinTryCatchFinallyTest")
+//        for (i in 1..7) {
+//            val method = kclass.getDeclaredMethod("test$i")
+//            val ma = MethodAnalyzer(method)
+//            println(i)
+//            assertEquals(ma.getPossibleExceptions(), exceptions[i - 1])
+//        }
     }
 }

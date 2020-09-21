@@ -19,17 +19,16 @@ class MethodAnalyzer(private val method: CtMethod) {
     }
 
     internal companion object {
-        var polyMethodsExceptions = PolymorphismAnalyzer(
-            emptyArray()
-        ).methodToExceptions
-        fun initPolymorphismAnalyzer(pa: PolymorphismAnalyzer) {
-            polyMethodsExceptions = pa.methodToExceptions
-        }
+        lateinit var polyMethodsExceptions: Map<MethodInformation, Set<String>>
+        fun polyMethodsExceptionsIsInitialized(): Boolean =
+            ::polyMethodsExceptions.isInitialized
+
         val previousMethods = ConcurrentHashMap<MethodInformation, Set<String>>()
     }
 
     fun getPossibleExceptions(): Set<String> {
-        if (polyMethodsExceptions.containsKey(methodInformation)) {
+        if (polyMethodsExceptionsIsInitialized()
+            && polyMethodsExceptions.containsKey(methodInformation)) {
             return polyMethodsExceptions.getValue(methodInformation)
         }
         val cfg = try {
@@ -58,15 +57,14 @@ class MethodAnalyzer(private val method: CtMethod) {
         while (exceptions != previousMethods.getValue(methodInformation)) {
             previousMethods[methodInformation] =
                     exceptions
-            exceptions = getPossibleExceptions().toMutableSet()
+            exceptions = getPossibleExceptions() as MutableSet<String>
         }
        return exceptions
     }
 
     private fun isReachable(node: ControlFlow.Node,
                             catchBlocks: Set<ControlFlow.Block>,
-                            blockAnalyzer: BlockAnalyzer
-    ): Boolean =
+                            blockAnalyzer: BlockAnalyzer): Boolean =
         if (node.block() in catchBlocks)
             node.block() in blockAnalyzer.reachableCatchBlocks
         else

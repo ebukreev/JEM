@@ -33,8 +33,11 @@ internal class BlockAnalyzer(method: CtMethod) {
                 } catch (e: Exception) {
                     continue
                 }
-                if (!isCaught(block, exception.toString())) {
-                    exceptions.add(exception.toString())
+
+                val exceptionAsString = exception.toString()
+
+                if (!isCaught(block, exceptionAsString)) {
+                    exceptions.add(exceptionAsString)
                 }
             }
         }
@@ -65,17 +68,17 @@ internal class BlockAnalyzer(method: CtMethod) {
         val pos = catcher.block().position()
         val len = catcher.block().length()
         var previousInst = pos
-        for (i in  pos until pos + len) {
+        for (i in pos until pos + len) {
             if (iterator.byteAt(i) in invokeOpcodes) {
                 val invokedMethod = iterator.u16bitAt(i + 1)
                 val c = constPool.getMethodrefClassName(invokedMethod)
                 val m = constPool.getMethodrefName(invokedMethod)
                 val d = constPool.getMethodrefType(invokedMethod)
-                val `class` = classPool.get(c)
+                val clazz = classPool.get(c)
                 val method = if (m in initsName)
-                    `class`.getConstructor(d).toMethod(m, classPool.get(c))
+                    clazz.getConstructor(d).toMethod(m, classPool.get(c))
                 else
-                    `class`.getMethod(m, d)
+                    clazz.getMethod(m, d)
                 if (Modifier.isNative(method.modifiers))
                     continue
                 val methodAnalyzer = MethodAnalyzer(method)

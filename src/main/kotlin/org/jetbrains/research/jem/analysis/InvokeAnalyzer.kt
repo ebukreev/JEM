@@ -63,11 +63,11 @@ internal class InvokeAnalyzer(method: CtMethod,
                 continue
             }
             try {
-                val `class` = classPool.get(c)
+                val clazz = classPool.get(c)
                 val method = if (m in initsName)
-                    `class`.getConstructor(d).toMethod(m, classPool.get(c))
+                    clazz.getConstructor(d).toMethod(m, classPool.get(c))
                 else
-                    `class`.getMethod(m, d)
+                    clazz.getMethod(m, d)
                 if (Modifier.isNative(method.modifiers))
                     continue
                 val methodInformation =

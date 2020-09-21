@@ -30,22 +30,27 @@ interface CaretAnalyzer {
             : Set<String>
 
     fun String.toJsonPath(): String =
-            "${System.getProperty("user.home")}/JEMPluginСache/${this
+            "${System.getProperty("user.home")}/.JEMPluginСache/${this
                     .substringAfterLast("/")
                     .removeSuffix(".jar")}.json"
 }
 
 object JavaCaretAnalyzer: CaretAnalyzer {
 
-    override fun analyze(psiFile: PsiFile, caret: Caret): Map<PsiType, Set<Discovery>>? {
-        val editor = caret.editor
-        return getDiscoveredExceptionsMap(JCallExtractor(psiFile, caret.selectionStart, caret.selectionEnd).extract(), editor.project ?: return null)
-    }
+    override fun analyze(psiFile: PsiFile, caret: Caret): Map<PsiType, Set<Discovery>> =
+        getDiscoveredExceptionsMap(
+            JCallExtractor(
+                psiFile,
+                caret.selectionStart,
+                caret.selectionEnd
+            ).extract(),
+            caret.editor.project
+        )
 
-    override fun analyzeForInspection(psiFile: PsiFile, project: Project, startOffset: Int, endOffset: Int): Set<String> {
-        return getDiscoveredExceptionsMap(JCallExtractor(psiFile, startOffset, endOffset).extract(), project)
+    override fun analyzeForInspection(psiFile: PsiFile, project: Project, startOffset: Int, endOffset: Int)
+            : Set<String> =
+        getDiscoveredExceptionsMap(JCallExtractor(psiFile, startOffset, endOffset).extract(), project)
                 .keys.map { it.canonicalText }.toSet()
-    }
 
     fun descriptorFor(method: PsiMethod): String =
             buildString {
@@ -57,9 +62,11 @@ object JavaCaretAnalyzer: CaretAnalyzer {
                 append(Descriptor.of(method.returnType?.canonicalText) ?: "")
             }
 
-    private fun getDiscoveredExceptionsMap(psiMethodCalls: Set<PsiCall>, project: Project)
+    private fun getDiscoveredExceptionsMap(psiMethodCalls: Set<PsiCall>, project: Project?)
             : Map<PsiType, Set<Discovery>> {
         val result = mutableMapOf<PsiType, MutableSet<Discovery>>()
+        if (project == null)
+            return emptyMap()
         for (call in psiMethodCalls) {
             val method = call.resolveMethod() ?: continue
             if (method.notInJar()) {
@@ -84,15 +91,19 @@ object JavaCaretAnalyzer: CaretAnalyzer {
 
 object KotlinCaretAnalyzer: CaretAnalyzer {
 
-    override fun analyze(psiFile: PsiFile, caret: Caret): Map<PsiType, Set<Discovery>>? {
-        val editor = caret.editor
-        return getDiscoveredExceptionsMap(KCallExtractor(psiFile as KtFile, caret.selectionStart, caret.selectionEnd).extract(), editor.project ?: return null)
-    }
+    override fun analyze(psiFile: PsiFile, caret: Caret): Map<PsiType, Set<Discovery>> =
+        getDiscoveredExceptionsMap(
+            KCallExtractor(
+                psiFile as KtFile,
+                caret.selectionStart,
+                caret.selectionEnd).extract(),
+            caret.editor.project
+        )
 
-    override fun analyzeForInspection(psiFile: PsiFile, project: Project, startOffset: Int, endOffset: Int): Set<String> {
-        return getDiscoveredExceptionsMap(KCallExtractor(psiFile as KtFile, startOffset, endOffset).extract(), project)
+    override fun analyzeForInspection(psiFile: PsiFile, project: Project, startOffset: Int, endOffset: Int)
+            : Set<String> =
+        getDiscoveredExceptionsMap(KCallExtractor(psiFile as KtFile, startOffset, endOffset).extract(), project)
                 .keys.map { it.canonicalText }.toSet()
-    }
 
     fun CallableDescriptor.getJarPath(): String =
             this.findPsi()!!.containingFile.virtualFile.toString()
@@ -100,8 +111,11 @@ object KotlinCaretAnalyzer: CaretAnalyzer {
                 .replaceBefore("://", "")
                 .removePrefix("://")
 
-    private fun getDiscoveredExceptionsMap(psiMethodCalls: Set<KtCallElement>, project: Project): Map<PsiType, Set<Discovery>> {
+    private fun getDiscoveredExceptionsMap(psiMethodCalls: Set<KtCallElement>, project: Project?)
+            : Map<PsiType, Set<Discovery>> {
         val result = mutableMapOf<PsiType, MutableSet<Discovery>>()
+        if (project == null)
+            return emptyMap()
         for (call in psiMethodCalls) {
             val method = call.getResolvedCall(call.analyze())?.resultingDescriptor ?: continue
             if (method.findPsi()?.notInJar() != false) {
@@ -134,19 +148,19 @@ private fun PsiElement.notInJar(): Boolean =
 private fun <T> getExceptionsFor(method: T, isKotlin: Boolean): Set<String> {
     val jarPath: String
     val name: String
-    val `class`: String
+    val clazz: String
     val descriptor: String
     if (isKotlin) {
         val m = method as CallableDescriptor
         jarPath = m.getJarPath()
         name = m.name.toString()
-        `class` = m.containingDeclaration.fqNameSafe.toString()
+        clazz = m.containingDeclaration.fqNameSafe.toString()
         descriptor = KotlinCaretAnalyzer.descriptorFor(m)
     } else {
         val m = method as PsiMethod
         jarPath = m.getJarPath()
         name = m.name
-        `class` = m.containingClass?.qualifiedName.toString()
+        clazz = m.containingClass?.qualifiedName.toString()
         descriptor = JavaCaretAnalyzer.descriptorFor(m)
     }
     val jsonPath = jarPath.toJsonPath()
@@ -155,7 +169,7 @@ private fun <T> getExceptionsFor(method: T, isKotlin: Boolean): Set<String> {
     }
     val lib = InfoReader.read(jsonPath)
     return lib.classes
-            .find { it.className == `class` }
+            .find { it.className == clazz }
             ?.methods
             ?.find { it.methodName == name && it.descriptor == descriptor }
             ?.exceptions ?: emptySet()

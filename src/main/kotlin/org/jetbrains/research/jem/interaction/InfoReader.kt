@@ -5,8 +5,8 @@ import java.io.FileReader
 
 object InfoReader {
     fun read(pathToJson: String): Library {
-        var jsonString = ""
-        FileReader(pathToJson).use { jsonString = it.readText() }
-        return Gson().fromJson(jsonString, Library::class.java)
+        FileReader(pathToJson).use {
+            return Gson().fromJson(it.readText(), Library::class.java)
+        }
     }
 }
