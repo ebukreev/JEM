@@ -19,7 +19,7 @@ class MethodAnalyzer(private val method: CtMethod) {
     }
 
     internal companion object {
-        lateinit var polyMethodsExceptions: Map<MethodInformation, Set<String>>
+        lateinit var polyMethodsExceptions: MutableMap<MethodInformation, Set<String>>
         fun polyMethodsExceptionsIsInitialized(): Boolean =
             ::polyMethodsExceptions.isInitialized
 

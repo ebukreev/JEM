@@ -1,17 +1,11 @@
 package org.jetbrains.research.jem.analysis
 
-import com.jetbrains.rd.framework.base.deepClonePolymorphic
-import javassist.ClassPool
 import javassist.CtClass
 import javassist.CtMethod
 import javassist.bytecode.Descriptor
 import org.jetbrains.research.jem.interaction.MethodInformation
 
 class PolymorphismAnalyzer(private val classPool: Array<CtClass>) {
-
-    // TODO: Consider possible additions to "heirs"
-    //       from classes in other jars from our closed world
-    //       (maybe run the analysis over fat or uber jar?)
 
     private val heirs = getHeirsForClassesAndInterfaces()
     private val methodToOverriders = getOverriddenMethods()
