@@ -14,8 +14,8 @@ import org.jetbrains.kotlin.resolve.calls.callUtil.getResolvedCall
 import org.jetbrains.kotlin.resolve.descriptorUtil.fqNameSafe
 import org.jetbrains.kotlin.resolve.source.getPsi
 import org.jetbrains.kotlinx.serialization.compiler.resolve.toClassDescriptor
-import org.jetbrains.research.jem.interaction.InfoReader
-import org.jetbrains.research.jem.interaction.JarAnalyzer
+import org.jetbrains.research.jem.analysis.MethodAnalyzer
+import org.jetbrains.research.jem.interaction.*
 import org.jetbrains.research.jem.plugin.JavaCaretAnalyzer.getJarPath
 import org.jetbrains.research.jem.plugin.KotlinCaretAnalyzer.getJarPath
 import org.jetbrains.research.jem.plugin.KotlinCaretAnalyzer.toJsonPath
@@ -67,6 +67,9 @@ object JavaCaretAnalyzer: CaretAnalyzer {
         val result = mutableMapOf<PsiType, MutableSet<Discovery>>()
         if (project == null)
             return emptyMap()
+        if (!LazyPolymorphAnalyzer.isInit()) {
+            LazyPolymorphAnalyzer.init(project)
+        }
         for (call in psiMethodCalls) {
             val method = call.resolveMethod() ?: continue
             if (method.notInJar()) {
@@ -116,6 +119,9 @@ object KotlinCaretAnalyzer: CaretAnalyzer {
         val result = mutableMapOf<PsiType, MutableSet<Discovery>>()
         if (project == null)
             return emptyMap()
+        if (!LazyPolymorphAnalyzer.isInit()) {
+            LazyPolymorphAnalyzer.init(project)
+        }
         for (call in psiMethodCalls) {
             val method = call.getResolvedCall(call.analyze())?.resultingDescriptor ?: continue
             if (method.findPsi()?.notInJar() != false) {
@@ -165,7 +171,13 @@ private fun <T> getExceptionsFor(method: T, isKotlin: Boolean): Set<String> {
     }
     val jsonPath = jarPath.toJsonPath()
     if (!File(jsonPath).exists()) {
-        JarAnalyzer.analyze(jarPath)
+        MethodAnalyzer.polyMethodsExceptions =
+            emptyMap<MethodInformation, Set<String>>().toMutableMap()
+        val methodInfo = MethodInformation(clazz, name, descriptor)
+        val exceptions = LazyPolymorphAnalyzer.analyze(methodInfo)
+        if (exceptions != null)
+            return exceptions
+        JarAnalyzer.analyze(jarPath, false)
     }
     val lib = InfoReader.read(jsonPath)
     return lib.classes
