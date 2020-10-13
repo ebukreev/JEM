@@ -1,3 +1,6 @@
+package org.jetbrains.research.jem.test.testcode;
+
+
 import java.io.IOException;
 import java.util.Random;
 

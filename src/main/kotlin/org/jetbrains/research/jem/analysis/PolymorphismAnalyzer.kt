@@ -31,13 +31,13 @@ class PolymorphismAnalyzer(classPool: Array<CtClass>) {
             return heirs
         }
 
-        fun getOverriddenMethods(heirs: Map<CtClass, Set<CtClass>>): Map<MethodInformation, Set<CtMethod>> {
-            val methodToOverriders = mutableMapOf<MethodInformation, MutableSet<CtMethod>>()
+        fun getOverriddenMethods(heirs: Map<CtClass, Set<CtClass>>): Map<MethodInformation, List<CtMethod>> {
+            val methodToOverriders = mutableMapOf<MethodInformation, MutableList<CtMethod>>()
             for ((clazz, subclasses) in heirs) {
                 clazz.methods.forEach { m ->
                     val methodInformation = MethodInformation(m)
                     subclasses.forEach { sc ->
-                        (methodToOverriders.getOrPut(methodInformation) { mutableSetOf() })
+                        (methodToOverriders.getOrPut(methodInformation) { mutableListOf() })
                             .addAll(sc.methods.filter {
                                 it.name == m.name &&
                                         !it.isEmpty &&
@@ -51,13 +51,13 @@ class PolymorphismAnalyzer(classPool: Array<CtClass>) {
             return methodToOverriders
         }
 
-        fun getExceptions(methodToOverriders: Map<MethodInformation, Set<CtMethod>>)
+        fun getExceptions(methodToOverriders: Map<MethodInformation, List<CtMethod>>)
                 : Map<MethodInformation, Set<String>> =
             methodToOverriders.mapValues { (_, v) ->
                 v.reduceMethodsExceptions()
             }
 
-        fun Set<CtMethod>.reduceMethodsExceptions() =
+        fun List<CtMethod>.reduceMethodsExceptions() =
             this.map {
                 MethodAnalyzer(it).getPossibleExceptions()
             }.reduce { acc, set -> acc.intersect(set) }
