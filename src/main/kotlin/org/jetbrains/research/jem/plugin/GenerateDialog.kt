@@ -1,21 +1,70 @@
 package org.jetbrains.research.jem.plugin
 
 import com.intellij.codeInsight.navigation.NavigationUtil
+import com.intellij.ide.util.MethodCellRenderer
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.LabeledComponent
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiType
 import com.intellij.ui.JBSplitter
+import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.components.JBList
-import com.thomas.checkMate.discovery.general.Discovery
-import com.thomas.checkMate.presentation.exception_form.DefaultListDecorator
-import com.thomas.checkMate.presentation.exception_form.ExceptionIndicatorCellRenderer
-import com.thomas.checkMate.presentation.exception_form.PsiTypeCellRenderer
+import java.awt.Component
 import java.awt.event.InputEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import javax.swing.*
+
+class PsiTypeCellRenderer : DefaultListCellRenderer() {
+    override fun getListCellRendererComponent(
+        list: JList<*>?,
+        value: Any,
+        index: Int,
+        isSelected: Boolean,
+        hasFocus: Boolean
+    ): Component {
+        return if (value is PsiType) super.getListCellRendererComponent(
+            list,
+            value.canonicalText,
+            index,
+            isSelected,
+            hasFocus
+        ) else super.getListCellRendererComponent(list, value, index, isSelected, hasFocus)
+    }
+}
+
+class ExceptionIndicatorCellRenderer : ListCellRenderer<Discovery> {
+    var methodCellRenderer = MethodCellRenderer(true)
+    override fun getListCellRendererComponent(
+        list: JList<out Discovery>,
+        value: Discovery,
+        index: Int,
+        isSelected: Boolean,
+        cellHasFocus: Boolean
+    ): Component {
+        return methodCellRenderer.getListCellRendererComponent(
+            list,
+            value.encapsulatingMethod,
+            index,
+            isSelected,
+            cellHasFocus
+        )
+    }
+}
+
+
+class DefaultListDecorator<T> {
+   fun decorate(listToDecorate: JList<T>, label: String): LabeledComponent<*> {
+        val toolbarDecorator = ToolbarDecorator.createDecorator(listToDecorate)
+        toolbarDecorator.disableAddAction()
+        toolbarDecorator.disableRemoveAction()
+        toolbarDecorator.disableUpDownActions()
+        val decoratedPanel = toolbarDecorator.createPanel()
+        return LabeledComponent.create(decoratedPanel, label)
+    }
+}
+
 
 class GenerateDialog(discoveredExceptionMap: Map<PsiType, Set<Discovery>>, currentFile: PsiFile)
                      : DialogWrapper(currentFile.project) {
@@ -37,8 +86,10 @@ class GenerateDialog(discoveredExceptionMap: Map<PsiType, Set<Discovery>>, curre
     }
 }
 
-class JemExceptionsForm(private var discoveredExceptionMap: Map<PsiType, Set<Discovery>>,
-                        private val currentFile: PsiFile) {
+class JemExceptionsForm(
+    private var discoveredExceptionMap: Map<PsiType, Set<Discovery>>,
+    private val currentFile: PsiFile
+) {
 
     private var exceptionList: JList<PsiType>
     private var methodList: JList<Discovery>

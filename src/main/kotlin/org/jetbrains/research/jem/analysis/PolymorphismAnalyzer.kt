@@ -59,7 +59,7 @@ class PolymorphismAnalyzer(classPool: Array<CtClass>) {
 
         fun List<CtMethod>.reduceMethodsExceptions() =
             this.map {
-                MethodAnalyzer(it).getPossibleExceptions()
-            }.reduce { acc, set -> acc.intersect(set) }
+                MethodAnalyzer(it).getPossibleExceptions().allExceptions
+            }.reduce { acc, set -> acc.intersect(set) as MutableSet<String> }
     }
 }

@@ -55,7 +55,9 @@ internal class InvokeAnalyzer(method: CtMethod,
         return methods
     }
 
-    fun getPossibleExceptionsFromMethods(block: ControlFlow.Block): Set<String> {
+    fun getCallsWithCaughtAndExceptions(block: ControlFlow.Block)
+            : Pair<Map<String, MutableSet<String>>, MutableSet<String>> {
+        val callsWithCaught = mutableMapOf<MethodInformation, MutableSet<String>>()
         val exceptions = mutableSetOf<String>()
         val invokedMethods = getInvokedMethods(block)
         for ((c, m, d) in invokedMethods) {
@@ -72,29 +74,38 @@ internal class InvokeAnalyzer(method: CtMethod,
                     continue
                 val methodInformation =
                     MethodInformation(method)
+
+                fun Set<String>.replenishExceptionsInfo() {
+                    this.forEach {
+                            if (blockAnalyzer.isCaught(block, it))
+                                callsWithCaught[methodInformation]?.add(it)
+                            else
+                                exceptions.add(it)
+                        }
+                }
+
+                callsWithCaught[methodInformation] = mutableSetOf()
                 if (MethodAnalyzer.polyMethodsExceptions.containsKey(methodInformation)) {
-                    exceptions.addAll(
-                        MethodAnalyzer.polyMethodsExceptions
-                            .getValue(methodInformation)
-                            .filter { !blockAnalyzer.isCaught(block, it) })
+                    MethodAnalyzer.polyMethodsExceptions
+                        .getValue(methodInformation)
+                        .replenishExceptionsInfo()
                     continue
                 }
                 if (MethodAnalyzer.previousMethods.containsKey(methodInformation)) {
-                    exceptions.addAll(
-                        MethodAnalyzer.previousMethods
-                            .getValue(methodInformation)
-                            .filter { !blockAnalyzer.isCaught(block, it) })
+                    MethodAnalyzer.previousMethods
+                        .getValue(methodInformation)
+                        .allExceptions
+                        .replenishExceptionsInfo()
                     continue
                 }
-                val methodAnalyzer = MethodAnalyzer(method)
-                val possibleExceptions = methodAnalyzer
-                        .getPossibleExceptions()
-                        .filter { !blockAnalyzer.isCaught(block, it) }
-                exceptions.addAll(possibleExceptions)
+                MethodAnalyzer(method)
+                    .getPossibleExceptions()
+                    .allExceptions
+                    .replenishExceptionsInfo()
             } catch (e: Exception) {
                 continue
             }
         }
-        return exceptions
+        return callsWithCaught.mapKeys { it.key.toString() } to exceptions
     }
 }

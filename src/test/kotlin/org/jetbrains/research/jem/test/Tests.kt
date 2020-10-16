@@ -29,14 +29,14 @@ class Tests {
             val method = `class`.getDeclaredMethod("test$i")
             val ma = MethodAnalyzer(method)
             println(i)
-            assertEquals(ma.getPossibleExceptions(), exceptions[i - 1])
+            assertEquals(ma.getPossibleExceptions().allExceptions, exceptions[i - 1])
         }
         val kclass = pool.get("org.jetbrains.research.jem.test.testcode.KotlinTryCatchFinallyTest")
         for (i in 1..7) {
             val method = kclass.getDeclaredMethod("test$i")
             val ma = MethodAnalyzer(method)
             println(i)
-            assertEquals(ma.getPossibleExceptions(), exceptions[i - 1])
+            assertEquals(ma.getPossibleExceptions().allExceptions, exceptions[i - 1])
         }
     }
 
@@ -65,7 +65,7 @@ class Tests {
             val method = clazz.getDeclaredMethod("foo")
             val ma = MethodAnalyzer(method)
             println(i)
-            assertEquals(ma.getPossibleExceptions(), exceptions[i - 1])
+            assertEquals(ma.getPossibleExceptions().allExceptions, exceptions[i - 1])
         }
     }
 

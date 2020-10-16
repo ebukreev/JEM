@@ -3,7 +3,6 @@ package org.jetbrains.research.jem.plugin
 import com.intellij.openapi.editor.Caret
 import com.intellij.openapi.project.Project
 import com.intellij.psi.*
-import com.thomas.checkMate.discovery.general.Discovery
 import javassist.bytecode.Descriptor
 import org.jetbrains.kotlin.descriptors.CallableDescriptor
 import org.jetbrains.kotlin.idea.caches.resolve.analyze
@@ -18,8 +17,8 @@ import org.jetbrains.research.jem.analysis.MethodAnalyzer
 import org.jetbrains.research.jem.interaction.*
 import org.jetbrains.research.jem.plugin.JavaCaretAnalyzer.getJarPath
 import org.jetbrains.research.jem.plugin.KotlinCaretAnalyzer.getJarPath
-import org.jetbrains.research.jem.plugin.KotlinCaretAnalyzer.toJsonPath
 import java.io.File
+import java.io.FileNotFoundException
 
 interface CaretAnalyzer {
 
@@ -28,11 +27,6 @@ interface CaretAnalyzer {
 
     fun analyzeForInspection(psiFile: PsiFile, project: Project, startOffset: Int, endOffset: Int)
             : Set<String>
-
-    fun String.toJsonPath(): String =
-            "${System.getProperty("user.home")}/.JEMPluginСache/${this
-                    .substringAfterLast("/")
-                    .removeSuffix(".jar")}.json"
 }
 
 object JavaCaretAnalyzer: CaretAnalyzer {
@@ -169,7 +163,12 @@ private fun <T> getExceptionsFor(method: T, isKotlin: Boolean): Set<String> {
         clazz = m.containingClass?.qualifiedName.toString()
         descriptor = JavaCaretAnalyzer.descriptorFor(m)
     }
-    val jsonPath = jarPath.toJsonPath()
+    val jsonPath = System.getProperty("user.home") +
+            "/.JEMPluginCache/" +
+            clazz
+                .replace("(\\.[A-Z].*)".toRegex(), "")
+                .replace(".", "/") +
+            "/${clazz.replace("(\\.[A-Z].*)".toRegex(), "")}.json"
     if (!File(jsonPath).exists()) {
         MethodAnalyzer.polyMethodsExceptions =
             emptyMap<MethodInformation, Set<String>>().toMutableMap()
@@ -179,10 +178,89 @@ private fun <T> getExceptionsFor(method: T, isKotlin: Boolean): Set<String> {
             return exceptions
         JarAnalyzer.analyze(jarPath, false)
     }
-    val lib = InfoReader.read(jsonPath)
-    return lib.classes
-            .find { it.className == clazz }
-            ?.methods
-            ?.find { it.methodName == name && it.descriptor == descriptor }
-            ?.exceptions ?: emptySet()
+
+    val pack = InfoReader.read(jsonPath)
+    return allInfoForExceptions(pack, clazz, name, descriptor)
+}
+
+private fun allInfoForExceptions(
+    pack: Package,
+    clazz: String,
+    name: String,
+    descriptor: String
+): Set<String> {
+    val result = mutableSetOf<String>()
+    val exceptionsInfo = pack.classes
+        .find { it.className == clazz }
+        ?.methods
+        ?.find { it.methodName == name && it.descriptor == descriptor }
+        ?.exceptionsInfo ?: return emptySet()
+
+    for (exception in exceptionsInfo.exceptions) {
+        result.add(
+            buildString {
+                append("$clazz $name")
+                append(" :")
+                append(System.lineSeparator())
+                append(exception)
+            }
+        )
+    }
+
+
+
+
+
+    for (call in exceptionsInfo.calls) {
+        result.addAll(buildCallTrace(call.key.toMethodInfo(), getExceptionsInfoFor(call.key),"$clazz $name", call.value))
+    }
+
+    return result
+}
+
+fun getExceptionsInfoFor(call: String): ExceptionsAndCalls {
+    val methodInfo = call.toMethodInfo()
+    val jsonPath = System.getProperty("user.home") +
+            "/.JEMPluginCache/" +
+            methodInfo.clazz!!
+                .replace("(\\.[A-Z].*)".toRegex(), "")
+                .replace(".", "/") +
+            "/${methodInfo.clazz.replace("(\\.[A-Z].*)".toRegex(), "")}.json"
+
+        val packOfThisCall =
+            try { InfoReader.read(jsonPath)
+    } catch (e: FileNotFoundException) {
+        return MethodAnalyzer(
+            MethodAnalyzer
+                .classPool
+                .getCtClass(call.toMethodInfo().clazz)
+                .getMethod(call.toMethodInfo()
+                    .name, call.toMethodInfo().descriptor)
+        ).getPossibleExceptions()
+    }
+    return packOfThisCall.classes
+        .find { it.className == methodInfo.clazz }
+        ?.methods
+        ?.find { it.methodName == methodInfo.name && it.descriptor == methodInfo.descriptor }
+        ?.exceptionsInfo ?: return ExceptionsAndCalls.empty()
+}
+
+fun buildCallTrace(call: MethodInformation, info: ExceptionsAndCalls, prevTrace: String, caught: Set<String>): Set<String> {
+    val traces = mutableSetOf<String>()
+    for (exception in info.exceptions) {
+        if (exception !in caught) {
+            traces.add(prevTrace + buildString {
+                append(" ->")
+                append(System.lineSeparator())
+                append("${call.clazz} ${call.name}")
+                append(" :")
+                append(System.lineSeparator())
+                append(exception)
+            })
+        }
+    }
+    for (callInfo in info.calls) {
+        traces.addAll(buildCallTrace(callInfo.key.toMethodInfo(), getExceptionsInfoFor(callInfo.key), prevTrace, callInfo.value))
+    }
+    return traces
 }

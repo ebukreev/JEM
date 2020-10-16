@@ -1,9 +1,11 @@
 package org.jetbrains.research.jem.analysis
 
+import javassist.ClassPool
 import javassist.CtMethod
 import javassist.NotFoundException
 import javassist.bytecode.BadBytecode
 import javassist.bytecode.analysis.*
+import org.jetbrains.research.jem.interaction.ExceptionsAndCalls
 import org.jetbrains.research.jem.interaction.MethodInformation
 import java.util.concurrent.ConcurrentHashMap
 
@@ -14,7 +16,7 @@ class MethodAnalyzer(private val method: CtMethod) {
     init {
         try {
             previousMethods[methodInformation] =
-                    emptySet()
+                    ExceptionsAndCalls.empty()
         } catch (e: NotFoundException) {}
     }
 
@@ -23,18 +25,25 @@ class MethodAnalyzer(private val method: CtMethod) {
         fun polyMethodsExceptionsIsInitialized(): Boolean =
             ::polyMethodsExceptions.isInitialized
 
-        val previousMethods = ConcurrentHashMap<MethodInformation, Set<String>>()
+        val previousMethods = ConcurrentHashMap<MethodInformation, ExceptionsAndCalls>()
+        val classPool: ClassPool = ClassPool.getDefault()
     }
 
-    fun getPossibleExceptions(): Set<String> {
+    fun getPossibleExceptions(): ExceptionsAndCalls {
         if (polyMethodsExceptionsIsInitialized()
             && polyMethodsExceptions.containsKey(methodInformation)) {
-            return polyMethodsExceptions.getValue(methodInformation)
+            return ExceptionsAndCalls(
+                polyMethodsExceptions
+                    .getValue(methodInformation) as MutableSet<String>, 
+                mutableMapOf(),
+                polyMethodsExceptions
+                    .getValue(methodInformation) as MutableSet<String>
+            )
         }
         val cfg = try {
             ControlFlow(method)
         } catch (e: BadBytecode) {
-            return setOf()
+            return ExceptionsAndCalls.empty()
         }
         val tree = cfg.dominatorTree() ?:
             return previousMethods.getValue(methodInformation)
@@ -42,24 +51,31 @@ class MethodAnalyzer(private val method: CtMethod) {
         val blockAnalyzer = BlockAnalyzer(method)
         val invokeAnalyzer =
             InvokeAnalyzer(method, blockAnalyzer)
-        var exceptions = mutableSetOf<String>()
+        var exceptionsAndCalls = ExceptionsAndCalls.empty()
         for (node in tree) {
             if (isReachable(node, catchBlocks, blockAnalyzer)) {
-                exceptions.addAll(blockAnalyzer
-                        .getThrownExceptions(node.block()))
-                exceptions.addAll(invokeAnalyzer
-                        .getPossibleExceptionsFromMethods(node.block()))
+                val thrownExceptions =
+                    blockAnalyzer.getThrownExceptions(node.block())
+                val callsWithCaughtAndExceptions =
+                    invokeAnalyzer.getCallsWithCaughtAndExceptions(node.block())
+                exceptionsAndCalls.exceptions.addAll(thrownExceptions)
+                exceptionsAndCalls.calls.putAll(callsWithCaughtAndExceptions.first)
+                exceptionsAndCalls.allExceptions.addAll(
+                    thrownExceptions + callsWithCaughtAndExceptions.second
+                )
             }
         }
         if (blockAnalyzer.hasEmptyFinally) {
-            exceptions.remove("java.lang.Throwable")
+            exceptionsAndCalls.exceptions.remove("java.lang.Throwable")
+            exceptionsAndCalls.allExceptions.remove("java.lang.Throwable")
         }
-        while (exceptions != previousMethods.getValue(methodInformation)) {
+        while (exceptionsAndCalls.allExceptions !=
+            previousMethods.getValue(methodInformation).allExceptions) {
             previousMethods[methodInformation] =
-                    exceptions
-            exceptions = getPossibleExceptions() as MutableSet<String>
+                    exceptionsAndCalls
+            exceptionsAndCalls = getPossibleExceptions()
         }
-       return exceptions
+        return exceptionsAndCalls
     }
 
     private fun isReachable(node: ControlFlow.Node,

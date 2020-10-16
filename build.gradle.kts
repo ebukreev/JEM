@@ -3,7 +3,8 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     id("org.jetbrains.intellij") version "0.4.21"
     java
-    kotlin("jvm") version "1.4.0"
+    kotlin("jvm") version "1.4.10"
+    kotlin("plugin.serialization") version "1.4.10"
 }
 
 group = "org.jetbrains.research.jem"
@@ -21,18 +22,14 @@ listOf("compileKotlin", "compileTestKotlin").forEach {
 
 repositories {
     mavenCentral()
-    maven {
-        url = uri("https://plugins.jetbrains.com/maven")
-    }
 }
 
 dependencies {
     implementation(kotlin("stdlib"))
     testImplementation("junit", "junit", "4.12")
     testImplementation("org.jetbrains.kotlin:kotlin-test:1.4.0")
-    implementation("org.jetbrains.plugins:com.thomas.checkMate:2.1")
     implementation("org.javassist:javassist:3.27.0-GA")
-    implementation("com.google.code.gson:gson:2.8.6")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.0.0")
 }
 
 intellij {

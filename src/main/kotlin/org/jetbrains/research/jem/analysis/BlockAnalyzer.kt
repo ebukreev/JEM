@@ -9,7 +9,7 @@ internal class BlockAnalyzer(method: CtMethod) {
 
     private val iterator = method.methodInfo2.codeAttribute.iterator()
     private val cfg = ControlFlow(method)
-    private val classPool = method.declaringClass.classPool
+    private val classPool = MethodAnalyzer.classPool
     internal val reachableCatchBlocks = mutableSetOf<ControlFlow.Block>()
     private val constPool = method.methodInfo2.constPool
     private val initsName = setOf("<init>", "<clinit>")
@@ -83,7 +83,7 @@ internal class BlockAnalyzer(method: CtMethod) {
                     continue
                 val methodAnalyzer = MethodAnalyzer(method)
                 val possibleExceptions = methodAnalyzer.getPossibleExceptions()
-                if (possibleExceptions.isNotEmpty())
+                if (possibleExceptions.allExceptions.isNotEmpty())
                     return false
             }
             if (iterator.byteAt(i) == Opcode.ATHROW) {

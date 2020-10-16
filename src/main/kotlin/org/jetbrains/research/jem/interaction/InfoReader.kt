@@ -1,12 +1,14 @@
 package org.jetbrains.research.jem.interaction
 
-import com.google.gson.Gson
+import kotlinx.serialization.json.Json
 import java.io.FileReader
+import kotlinx.serialization.*
+
 
 object InfoReader {
-    fun read(pathToJson: String): Library {
+    fun read(pathToJson: String): Package {
         FileReader(pathToJson).use {
-            return Gson().fromJson(it.readText(), Library::class.java)
+            return Json.decodeFromString(it.readText())
         }
     }
 }
