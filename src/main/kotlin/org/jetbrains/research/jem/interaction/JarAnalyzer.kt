@@ -1,6 +1,7 @@
 package org.jetbrains.research.jem.interaction
 
 import javassist.ClassPool
+import javassist.CtBehavior
 import javassist.CtClass
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -40,7 +41,9 @@ object JarAnalyzer {
             for (c in klasses) {
                 try {
                     val methodsForClassEntity = mutableListOf<Method>()
-                    val methods = c.methods
+                    val methods: List<CtBehavior> = listOf(*c.methods) +
+                            listOf(*c.declaredMethods) +
+                            listOf(*c.declaredConstructors)
                     for (m in methods) {
                         val analyser = MethodAnalyzer(m)
                         val method =

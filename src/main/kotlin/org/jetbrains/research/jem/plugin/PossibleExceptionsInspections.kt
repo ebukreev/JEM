@@ -25,7 +25,7 @@ class JPossibleExceptionsInspection : AbstractBaseJavaLocalInspectionTool() {
                 val end = statement.tryBlock?.endOffset ?: return
                 val exceptions =
                     JavaCaretAnalyzer
-                        .analyzeForInspection(statement.containingFile, statement.project, start, end)
+                        .analyze(statement.containingFile, statement.project, start, end).keys
                             .toMutableSet()
                 val caught = statement.catchSections.map { it.catchType!!.canonicalText }
                 exceptions.removeCaught(caught, statement)
@@ -51,7 +51,7 @@ class KPossibleExceptionsInspection : AbstractKotlinInspection() {
                 val end = expression.tryBlock.endOffset
                 val exceptions =
                         KotlinCaretAnalyzer
-                            .analyzeForInspection(expression.containingFile, expression.project, start, end)
+                            .analyze(expression.containingFile, expression.project, start, end).keys
                                 .toMutableSet()
                 val caught = expression.catchClauses.mapNotNull {
                     it.catchParameter?.type().toClassDescriptor?.fqNameSafe?.asString()

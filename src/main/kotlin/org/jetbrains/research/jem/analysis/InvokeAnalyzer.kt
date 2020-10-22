@@ -1,12 +1,12 @@
 package org.jetbrains.research.jem.analysis
 
-import javassist.CtMethod
+import javassist.CtBehavior
 import javassist.Modifier
 import javassist.bytecode.Opcode.*
 import javassist.bytecode.analysis.ControlFlow
 import org.jetbrains.research.jem.interaction.MethodInformation
 
-internal class InvokeAnalyzer(method: CtMethod,
+internal class InvokeAnalyzer(method: CtBehavior,
                               private val blockAnalyzer: BlockAnalyzer) {
 
     private val iterator = method.methodInfo2.codeAttribute.iterator()

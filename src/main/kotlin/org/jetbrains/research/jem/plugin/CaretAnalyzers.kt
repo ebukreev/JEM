@@ -1,6 +1,5 @@
 package org.jetbrains.research.jem.plugin
 
-import com.intellij.openapi.editor.Caret
 import com.intellij.openapi.project.Project
 import com.intellij.psi.*
 import javassist.bytecode.Descriptor
@@ -18,33 +17,19 @@ import org.jetbrains.research.jem.interaction.*
 import org.jetbrains.research.jem.plugin.JavaCaretAnalyzer.getJarPath
 import org.jetbrains.research.jem.plugin.KotlinCaretAnalyzer.getJarPath
 import java.io.File
-import java.io.FileNotFoundException
 
-interface CaretAnalyzer {
+object JavaCaretAnalyzer {
 
-    fun analyze(psiFile: PsiFile, caret: Caret)
-            : Map<PsiType, Set<Discovery>>?
-
-    fun analyzeForInspection(psiFile: PsiFile, project: Project, startOffset: Int, endOffset: Int)
-            : Set<String>
-}
-
-object JavaCaretAnalyzer: CaretAnalyzer {
-
-    override fun analyze(psiFile: PsiFile, caret: Caret): Map<PsiType, Set<Discovery>> =
+    fun analyze(psiFile: PsiFile, project: Project, startOffset: Int, endOffset: Int)
+            : Map<String, Set<Discovery>> =
         getDiscoveredExceptionsMap(
             JCallExtractor(
                 psiFile,
-                caret.selectionStart,
-                caret.selectionEnd
+                startOffset,
+                endOffset
             ).extract(),
-            caret.editor.project
+            project
         )
-
-    override fun analyzeForInspection(psiFile: PsiFile, project: Project, startOffset: Int, endOffset: Int)
-            : Set<String> =
-        getDiscoveredExceptionsMap(JCallExtractor(psiFile, startOffset, endOffset).extract(), project)
-                .keys.map { it.canonicalText }.toSet()
 
     fun descriptorFor(method: PsiMethod): String =
             buildString {
@@ -53,12 +38,12 @@ object JavaCaretAnalyzer: CaretAnalyzer {
                     append(Descriptor.of(it.type.canonicalText))
                 }
                 append(")")
-                append(Descriptor.of(method.returnType?.canonicalText) ?: "")
+                append(Descriptor.of(method.returnType?.canonicalText ?: "void"))
             }
 
     private fun getDiscoveredExceptionsMap(psiMethodCalls: Set<PsiCall>, project: Project?)
-            : Map<PsiType, Set<Discovery>> {
-        val result = mutableMapOf<PsiType, MutableSet<Discovery>>()
+            : Map<String, Set<Discovery>> {
+        val result = mutableMapOf<String, MutableSet<Discovery>>()
         if (project == null)
             return emptyMap()
         if (!LazyPolymorphAnalyzer.isInit()) {
@@ -71,9 +56,8 @@ object JavaCaretAnalyzer: CaretAnalyzer {
             }
             val exceptions = getExceptionsFor(method, false)
             exceptions.forEach {
-                val typeOfIt = PsiType.getTypeByName(it, project, call.resolveScope)
-                val discovery = Discovery(typeOfIt, call, method)
-                result.getOrPut(typeOfIt) { mutableSetOf() }.add(discovery)
+                val discovery = Discovery(it, call, method)
+                result.getOrPut(it) { mutableSetOf() }.add(discovery)
             }
         }
         return result
@@ -86,21 +70,17 @@ object JavaCaretAnalyzer: CaretAnalyzer {
             .removePrefix("://")
 }
 
-object KotlinCaretAnalyzer: CaretAnalyzer {
+object KotlinCaretAnalyzer {
 
-    override fun analyze(psiFile: PsiFile, caret: Caret): Map<PsiType, Set<Discovery>> =
+    fun analyze(psiFile: PsiFile, project: Project, startOffset: Int, endOffset: Int)
+            : Map<String, Set<Discovery>> =
         getDiscoveredExceptionsMap(
             KCallExtractor(
                 psiFile as KtFile,
-                caret.selectionStart,
-                caret.selectionEnd).extract(),
-            caret.editor.project
+                startOffset,
+                endOffset).extract(),
+            project
         )
-
-    override fun analyzeForInspection(psiFile: PsiFile, project: Project, startOffset: Int, endOffset: Int)
-            : Set<String> =
-        getDiscoveredExceptionsMap(KCallExtractor(psiFile as KtFile, startOffset, endOffset).extract(), project)
-                .keys.map { it.canonicalText }.toSet()
 
     fun CallableDescriptor.getJarPath(): String =
             this.findPsi()!!.containingFile.virtualFile.toString()
@@ -109,8 +89,8 @@ object KotlinCaretAnalyzer: CaretAnalyzer {
                 .removePrefix("://")
 
     private fun getDiscoveredExceptionsMap(psiMethodCalls: Set<KtCallElement>, project: Project?)
-            : Map<PsiType, Set<Discovery>> {
-        val result = mutableMapOf<PsiType, MutableSet<Discovery>>()
+            : Map<String, Set<Discovery>> {
+        val result = mutableMapOf<String, MutableSet<Discovery>>()
         if (project == null)
             return emptyMap()
         if (!LazyPolymorphAnalyzer.isInit()) {
@@ -123,9 +103,8 @@ object KotlinCaretAnalyzer: CaretAnalyzer {
             }
             val exceptions = getExceptionsFor(method, true)
             exceptions.forEach {
-                val typeOfIt = PsiType.getTypeByName(it, project, call.resolveScope)
-                val discovery = Discovery(typeOfIt, call, method.findPsi() as PsiMethod)
-                result.getOrPut(typeOfIt) { mutableSetOf() }.add(discovery)
+                val discovery = Discovery(it, call, method.findPsi() as PsiMethod)
+                result.getOrPut(it) { mutableSetOf() }.add(discovery)
             }
         }
         return result
@@ -135,10 +114,10 @@ object KotlinCaretAnalyzer: CaretAnalyzer {
             buildString {
                 append("(")
                 method.valueParameters.forEach {
-                    append(Descriptor.of(it.source.getPsi()?.text?.replace(" classname", "")) ?: "")
+                    append(Descriptor.of(it.source.getPsi()?.text?.replace(" classname", "")))
                 }
                 append(")")
-                append(Descriptor.of(method.returnType.toClassDescriptor?.fqNameSafe.toString()) ?: "")
+                append(Descriptor.of(method.returnType.toClassDescriptor?.fqNameSafe.toString()))
             }
 }
 
@@ -178,89 +157,5 @@ private fun <T> getExceptionsFor(method: T, isKotlin: Boolean): Set<String> {
             return exceptions
         JarAnalyzer.analyze(jarPath, false)
     }
-
-    val pack = InfoReader.read(jsonPath)
-    return allInfoForExceptions(pack, clazz, name, descriptor)
-}
-
-private fun allInfoForExceptions(
-    pack: Package,
-    clazz: String,
-    name: String,
-    descriptor: String
-): Set<String> {
-    val result = mutableSetOf<String>()
-    val exceptionsInfo = pack.classes
-        .find { it.className == clazz }
-        ?.methods
-        ?.find { it.methodName == name && it.descriptor == descriptor }
-        ?.exceptionsInfo ?: return emptySet()
-
-    for (exception in exceptionsInfo.exceptions) {
-        result.add(
-            buildString {
-                append("$clazz $name")
-                append(" :")
-                append(System.lineSeparator())
-                append(exception)
-            }
-        )
-    }
-
-
-
-
-
-    for (call in exceptionsInfo.calls) {
-        result.addAll(buildCallTrace(call.key.toMethodInfo(), getExceptionsInfoFor(call.key),"$clazz $name", call.value))
-    }
-
-    return result
-}
-
-fun getExceptionsInfoFor(call: String): ExceptionsAndCalls {
-    val methodInfo = call.toMethodInfo()
-    val jsonPath = System.getProperty("user.home") +
-            "/.JEMPluginCache/" +
-            methodInfo.clazz!!
-                .replace("(\\.[A-Z].*)".toRegex(), "")
-                .replace(".", "/") +
-            "/${methodInfo.clazz.replace("(\\.[A-Z].*)".toRegex(), "")}.json"
-
-        val packOfThisCall =
-            try { InfoReader.read(jsonPath)
-    } catch (e: FileNotFoundException) {
-        return MethodAnalyzer(
-            MethodAnalyzer
-                .classPool
-                .getCtClass(call.toMethodInfo().clazz)
-                .getMethod(call.toMethodInfo()
-                    .name, call.toMethodInfo().descriptor)
-        ).getPossibleExceptions()
-    }
-    return packOfThisCall.classes
-        .find { it.className == methodInfo.clazz }
-        ?.methods
-        ?.find { it.methodName == methodInfo.name && it.descriptor == methodInfo.descriptor }
-        ?.exceptionsInfo ?: return ExceptionsAndCalls.empty()
-}
-
-fun buildCallTrace(call: MethodInformation, info: ExceptionsAndCalls, prevTrace: String, caught: Set<String>): Set<String> {
-    val traces = mutableSetOf<String>()
-    for (exception in info.exceptions) {
-        if (exception !in caught) {
-            traces.add(prevTrace + buildString {
-                append(" ->")
-                append(System.lineSeparator())
-                append("${call.clazz} ${call.name}")
-                append(" :")
-                append(System.lineSeparator())
-                append(exception)
-            })
-        }
-    }
-    for (callInfo in info.calls) {
-        traces.addAll(buildCallTrace(callInfo.key.toMethodInfo(), getExceptionsInfoFor(callInfo.key), prevTrace, callInfo.value))
-    }
-    return traces
+    return InfoReader.getAllExceptionsFor(MethodInformation(clazz, name, descriptor))
 }

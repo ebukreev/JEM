@@ -1,8 +1,6 @@
 package org.jetbrains.research.jem.interaction
 
-import javassist.ClassPool
-import javassist.CtMethod
-import org.jetbrains.research.jem.analysis.MethodAnalyzer
+import javassist.CtBehavior
 import kotlinx.serialization.*
 
 @Serializable
@@ -46,7 +44,7 @@ data class MethodInformation(
         val name: String,
         val descriptor: String
 ) {
-    constructor(method: CtMethod): this(method.declaringClass.name, method.name, method.methodInfo2.descriptor)
+    constructor(method: CtBehavior): this(method.declaringClass.name, method.name, method.methodInfo2.descriptor)
 
         override fun toString() = "$clazz $name $descriptor"
 }

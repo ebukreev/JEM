@@ -6,6 +6,7 @@ import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.openapi.ui.LabeledComponent
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.PsiMethod
 import com.intellij.psi.PsiType
 import com.intellij.ui.JBSplitter
 import com.intellij.ui.ToolbarDecorator
@@ -15,6 +16,12 @@ import java.awt.event.InputEvent
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import javax.swing.*
+
+data class Discovery(
+    val exceptionType: String,
+    val indicator: PsiElement,
+    val encapsulatingMethod: PsiMethod
+)
 
 class PsiTypeCellRenderer : DefaultListCellRenderer() {
     override fun getListCellRendererComponent(
@@ -66,7 +73,7 @@ class DefaultListDecorator<T> {
 }
 
 
-class GenerateDialog(discoveredExceptionMap: Map<PsiType, Set<Discovery>>, currentFile: PsiFile)
+class GenerateDialog(discoveredExceptionMap: Map<String, Set<Discovery>>, currentFile: PsiFile)
                      : DialogWrapper(currentFile.project) {
 
     private val exceptionsForm: JemExceptionsForm
@@ -87,11 +94,11 @@ class GenerateDialog(discoveredExceptionMap: Map<PsiType, Set<Discovery>>, curre
 }
 
 class JemExceptionsForm(
-    private var discoveredExceptionMap: Map<PsiType, Set<Discovery>>,
+    private var discoveredExceptionMap: Map<String, Set<Discovery>>,
     private val currentFile: PsiFile
 ) {
 
-    private var exceptionList: JList<PsiType>
+    private var exceptionList: JList<String>
     private var methodList: JList<Discovery>
     internal var splitter: JBSplitter
     private var currentActive: PsiElement
@@ -100,7 +107,7 @@ class JemExceptionsForm(
         currentActive = currentFile
         exceptionList = createExceptionList(discoveredExceptionMap.keys)
         methodList = createMethodList()
-        val decoratedExceptionList = DefaultListDecorator<PsiType>()
+        val decoratedExceptionList = DefaultListDecorator<String>()
                 .decorate(exceptionList, "Possible exceptions")
         val decoratedMethodList = DefaultListDecorator<Discovery>()
                 .decorate(methodList, "Inspect methods that throw this exception")
@@ -108,9 +115,9 @@ class JemExceptionsForm(
         splitter = createSplitter(decoratedExceptionList, decoratedMethodList)
     }
 
-    private fun createExceptionList(exceptionTypes: Set<PsiType>): JList<PsiType> {
-        val exceptionList = JBList<PsiType>()
-        val listModel = DefaultListModel<PsiType>()
+    private fun createExceptionList(exceptionTypes: Set<String>): JList<String> {
+        val exceptionList = JBList<String>()
+        val listModel = DefaultListModel<String>()
         listModel.addAll(exceptionTypes)
         exceptionList.model = listModel
         exceptionList.addListSelectionListener {

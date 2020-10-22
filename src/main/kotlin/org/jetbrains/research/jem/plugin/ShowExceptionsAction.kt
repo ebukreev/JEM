@@ -14,8 +14,20 @@ class ShowExceptionsAction : AnAction() {
         val currentCaret = editor.caretModel.currentCaret
         val discoveredExceptions =
                 when (psiFile.language) {
-                    is KotlinLanguage -> KotlinCaretAnalyzer.analyze(psiFile, currentCaret)
-                    is JavaLanguage -> JavaCaretAnalyzer.analyze(psiFile, currentCaret)
+                    is KotlinLanguage ->
+                        KotlinCaretAnalyzer.analyze(
+                                psiFile,
+                                e.project!!,
+                                currentCaret.selectionStart,
+                                currentCaret.selectionEnd
+                            )
+                    is JavaLanguage ->
+                        JavaCaretAnalyzer.analyze(
+                            psiFile,
+                            e.project!!,
+                            currentCaret.selectionStart,
+                            currentCaret.selectionEnd
+                        )
                     else -> null
                 } ?: return
         val generateDialog = GenerateDialog(discoveredExceptions, psiFile)

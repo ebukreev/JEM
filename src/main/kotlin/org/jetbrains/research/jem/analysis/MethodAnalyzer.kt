@@ -1,7 +1,7 @@
 package org.jetbrains.research.jem.analysis
 
 import javassist.ClassPool
-import javassist.CtMethod
+import javassist.CtBehavior
 import javassist.NotFoundException
 import javassist.bytecode.BadBytecode
 import javassist.bytecode.analysis.*
@@ -9,7 +9,7 @@ import org.jetbrains.research.jem.interaction.ExceptionsAndCalls
 import org.jetbrains.research.jem.interaction.MethodInformation
 import java.util.concurrent.ConcurrentHashMap
 
-class MethodAnalyzer(private val method: CtMethod) {
+class MethodAnalyzer(private val method: CtBehavior) {
 
     private val methodInformation = MethodInformation(method)
 
@@ -41,7 +41,7 @@ class MethodAnalyzer(private val method: CtMethod) {
             )
         }
         val cfg = try {
-            ControlFlow(method)
+            ControlFlow(method.declaringClass, method.methodInfo2)
         } catch (e: BadBytecode) {
             return ExceptionsAndCalls.empty()
         }
@@ -70,9 +70,10 @@ class MethodAnalyzer(private val method: CtMethod) {
             exceptionsAndCalls.allExceptions.remove("java.lang.Throwable")
         }
         while (exceptionsAndCalls.allExceptions !=
-            previousMethods.getValue(methodInformation).allExceptions) {
+            previousMethods.getValue(methodInformation).allExceptions
+        ) {
             previousMethods[methodInformation] =
-                    exceptionsAndCalls
+                exceptionsAndCalls
             exceptionsAndCalls = getPossibleExceptions()
         }
         return exceptionsAndCalls
